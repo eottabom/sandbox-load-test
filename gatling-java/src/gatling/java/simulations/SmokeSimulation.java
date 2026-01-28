@@ -17,14 +17,17 @@ public class SmokeSimulation extends Simulation {
 
     ScenarioBuilder scn = scenario("Smoke Test")
         .exec(
-            http("it's test_11112341234")
+            http("Test")
                 .get("/public/crocodiles/")
                 .check(status().is(200))
         );
 
     {
         setUp(
-            scn.injectOpen(atOnceUsers(2))
+                scn.injectOpen(
+                        constantUsersPerSec(2)   // 초당 2명 유입
+                                .during(Duration.ofMinutes(4))
+                )
         ).protocols(httpProtocol)
          .assertions(
              global().failedRequests().count().is(0L)
