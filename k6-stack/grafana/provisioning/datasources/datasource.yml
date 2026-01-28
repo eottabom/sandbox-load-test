@@ -1,0 +1,28 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-k6
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: k6
+    isDefault: true
+    editable: false
+
+  - name: InfluxDB-Gatling
+    type: influxdb
+    uid: InfluxDB-Gatling
+    access: proxy
+    url: http://influxdb:8086
+    database: gatling
+    isDefault: false
+    editable: false
+
+  - name: InfluxDB-Gatling-Realtime
+    type: influxdb
+    uid: InfluxDB-Gatling-Realtime
+    access: proxy
+    url: http://influxdb:8086
+    database: gatling-realtime
+    isDefault: false
+    editable: false

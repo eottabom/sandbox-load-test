@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'io.gatling.gradle' version '3.11.5.2'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    gatlingImplementation 'org.influxdb:influxdb-java:2.23'
+}
+
+tasks.register('gatlingRunWithInflux', JavaExec) {
+    group = 'gatling'
+    description = 'Run Gatling simulation with InfluxDB output'
+    classpath = sourceSets.gatling.runtimeClasspath
+    mainClass = 'io.gatling.app.Gatling'
+
+    args = [
+        '--simulation', project.findProperty('simulation') ?: 'simulations.SampleSimulation',
+        '--results-folder', "${buildDir}/reports/gatling"
+    ]
+
+    systemProperty 'gatling.data.writers', 'console,file,influxdb'
+}
