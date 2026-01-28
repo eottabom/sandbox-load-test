@@ -1,6 +1,7 @@
 <img width="1040" height="1063" alt="image" src="https://github.com/user-attachments/assets/2d73b85c-f1c2-4901-9307-178cb1468829" />
 
 
+```
 perf-aigent-platform/
 ├── docker-compose/             # 인프라 설정 (기존 k6-stack 기반)
 │   ├── docker-compose.yml      # InfluxDB, Grafana, Prometheus 등
@@ -30,3 +31,4 @@ perf-aigent-platform/
 │       ├── simulations/        # 게틀링 Scala/Java 시뮬레이션 파일
 │       └── conf/               # gatling.conf, logback.xml
 └── README.md
+```
