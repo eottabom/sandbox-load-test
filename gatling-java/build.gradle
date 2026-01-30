@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'io.gatling.gradle' version '3.11.5.2'
+    id 'io.gatling.gradle' version '3.14.3.1'
 }
 
 repositories {
@@ -13,19 +13,13 @@ java {
 }
 
 dependencies {
-    gatlingImplementation 'org.influxdb:influxdb-java:2.23'
+    // Prometheus client for metrics exposition
+    gatlingImplementation 'io.prometheus:prometheus-metrics-core:1.3.5'
+    gatlingImplementation 'io.prometheus:prometheus-metrics-exposition-formats:1.3.5'
+    gatlingImplementation 'io.prometheus:prometheus-metrics-instrumentation-jvm:1.3.5'
+    gatlingImplementation 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.5'
 }
 
-tasks.register('gatlingRunWithInflux', JavaExec) {
-    group = 'gatling'
-    description = 'Run Gatling simulation with InfluxDB output'
-    classpath = sourceSets.gatling.runtimeClasspath
-    mainClass = 'io.gatling.app.Gatling'
-
-    args = [
-        '--simulation', project.findProperty('simulation') ?: 'simulations.SampleSimulation',
-        '--results-folder', "${buildDir}/reports/gatling"
-    ]
-
-    systemProperty 'gatling.data.writers', 'console,file,influxdb'
-}
+// Prometheus metrics are exposed via HTTP server during simulation
+// Access metrics at: http://localhost:9102/metrics
+// Configure your Prometheus to scrape this endpoint

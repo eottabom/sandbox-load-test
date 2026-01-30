@@ -1,4 +1,4 @@
-//package simulations;
+package simulations;//package simulations;
 //
 //import io.gatling.javaapi.core.*;
 //import io.gatling.javaapi.http.*;

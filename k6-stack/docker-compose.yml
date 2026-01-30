@@ -1,4 +1,20 @@
 services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [k6net]
+
   influxdb:
     image: influxdb:1.8
     container_name: influxdb
@@ -35,6 +51,7 @@ services:
     container_name: grafana
     depends_on:
       - influxdb
+      - prometheus
     ports:
       - "3000:3000"
     environment:
@@ -132,3 +149,4 @@ networks:
 volumes:
   influxdb-data:
   grafana-data:
+  prometheus-data:
