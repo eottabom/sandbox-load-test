@@ -84,52 +84,9 @@ services:
         sed "s/\$${DS_DUMMY}/InfluxDB-k6/g" /tmp/k6-raw.json > /var/lib/grafana/dashboards/k6.json
         echo "k6 dashboard done"
 
-        echo "=== Downloading Gatling x2i dashboard (21776) ==="
-        curl -fsSL "https://grafana.com/api/dashboards/21776/revisions/1/download" -o /tmp/gatling-raw.json || exit 1
-        # sed로 기본 치환
-        sed -e "s/\$${DS_INFLUXDB-X2I_GATLING}/InfluxDB-Gatling/g" \
-            -e "s/influxdb-x2i_gatling/InfluxDB-Gatling/g" \
-            -e 's|/\.\*gatling\.\*/|/.*Gatling.*/|g' \
-            -e 's/"interval": "\$${min_interval}ms"/"interval": "1s"/g' \
-            /tmp/gatling-raw.json > /tmp/gatling-temp.json
-        # jq로 min_interval 변수를 고정값으로 변경
-        jq '(.templating.list[] | select(.name == "min_interval")) = {
-          "current": {"selected": true, "text": "1000", "value": "1000"},
-          "hide": 2,
-          "name": "min_interval",
-          "options": [{"selected": true, "text": "1000", "value": "1000"}],
-          "query": "1000",
-          "skipUrlSync": false,
-          "type": "custom"
-        }' /tmp/gatling-temp.json > /var/lib/grafana/dashboards/gatling-x2i.json
-        echo "Gatling x2i dashboard done"
-
         echo "=== All dashboards downloaded ==="
 
-  # x2i: Gatling simulation.log를 InfluxDB로 전송
-  # 항상 실행: docker compose up -d x2i
-  # 수동 실행: docker compose run --rm x2i
-  x2i:
-    build: ./x2i
-    container_name: x2i
-    restart: unless-stopped
-    depends_on:
-      - influxdb
-    networks: [k6net]
-    volumes:
-      - ../gatling-java/build/reports/gatling:/results:ro
-    command:
-      - /results
-      - -i
-      - gatling
-      - -a
-      - http://influxdb:8086
-      - -b
-      - gatling
-      - -s
-      - "86400"
 
-  # k6는 "항상 켜두는 서비스"가 아니라 필요할 때 run 하는 걸 권장
 #  k6:
 #    image: grafana/k6:0.49.0
 #    container_name: k6

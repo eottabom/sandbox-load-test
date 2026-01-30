@@ -2,10 +2,6 @@
 -- (k6 데이터베이스는 INFLUXDB_DB 환경변수로 자동 생성됨)
 CREATE RETENTION POLICY "rp_7d" ON "k6" DURATION 7d REPLICATION 1 DEFAULT
 
--- Gatling x2i용 데이터베이스 및 보존 정책
-CREATE DATABASE "gatling"
-CREATE RETENTION POLICY "rp_7d" ON "gatling" DURATION 7d REPLICATION 1 DEFAULT
-
 -- Gatling Realtime (Graphite)용 데이터베이스 및 보존 정책
 CREATE DATABASE "gatling-realtime"
 CREATE RETENTION POLICY "rp_7d" ON "gatling-realtime" DURATION 7d REPLICATION 1 DEFAULT
