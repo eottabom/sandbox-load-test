@@ -1,1 +1,7 @@
+pluginManagement {
+    plugins {
+        id 'io.gatling.gradle' version "${gatlingVersion}"
+    }
+}
+
 rootProject.name = 'gatling-java'

@@ -6,12 +6,16 @@ import io.prometheus.metrics.core.metrics.Histogram;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
 public class GatlingPrometheusMetrics {
 
+    private static final Logger log = LoggerFactory.getLogger(GatlingPrometheusMetrics.class);
+    private static final int DEFAULT_PORT = 9102;
     private static volatile GatlingPrometheusMetrics instance;
     private static final Object lock = new Object();
     private static volatile boolean shutdownHookRegistered = false;
@@ -32,11 +36,20 @@ public class GatlingPrometheusMetrics {
         this.registry = PrometheusRegistry.defaultRegistry;
         registerMetrics();
         registerShutdownHook();
+        autoStartServer();
+    }
+
+    private void autoStartServer() {
+        try {
+            startServer(DEFAULT_PORT);
+        } catch (IOException e) {
+            log.warn("Could not start Prometheus server: {}", e.getMessage());
+        }
     }
 
     private void registerMetrics() {
         if (metricsRegistered) {
-            System.out.println("Prometheus metrics already registered, skipping...");
+            log.debug("Prometheus metrics already registered, skipping...");
             return;
         }
 
@@ -92,9 +105,9 @@ public class GatlingPrometheusMetrics {
                     .register(registry);
 
             metricsRegistered = true;
-            System.out.println("Prometheus metrics registered successfully");
+            log.info("Prometheus metrics registered successfully");
         } catch (Exception e) {
-            System.err.println("Error registering metrics: " + e.getMessage());
+            log.error("Error registering metrics: {}", e.getMessage());
             throw new RuntimeException("Failed to register Prometheus metrics", e);
         }
     }
@@ -103,7 +116,7 @@ public class GatlingPrometheusMetrics {
         if (!shutdownHookRegistered) {
             shutdownHookRegistered = true;
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("Shutdown hook triggered - stopping Prometheus server...");
+                log.info("Shutdown hook triggered - stopping Prometheus server...");
                 stopServerInternal();
             }, "prometheus-shutdown-hook"));
         }
@@ -134,73 +147,34 @@ public class GatlingPrometheusMetrics {
 
     public void startServer(int port) throws IOException {
         synchronized (lock) {
-            // 이미 같은 포트에서 실행 중
-            if (server != null && currentPort == port) {
-                System.out.println("Prometheus metrics server already running on port " + port);
+            if (server != null) {
+                log.debug("Prometheus metrics server already running on port {}", currentPort);
                 return;
             }
 
-            // 다른 포트에서 실행 중이면 종료
-            if (server != null) {
-                stopServerInternal();
-            }
-
-            // 포트 사용 가능 여부 확인 및 대기
-            int maxRetries = 5;
-            int retryCount = 0;
-
-            while (!isPortAvailable(port) && retryCount < maxRetries) {
-                System.out.println("Port " + port + " is in use. Waiting... (" + (retryCount + 1) + "/" + maxRetries + ")");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Interrupted while waiting for port " + port);
-                }
-                retryCount++;
-            }
-
-            if (!isPortAvailable(port)) {
-                // 포트가 여전히 사용 중이면 다른 포트 시도
-                int alternativePort = findAvailablePort(port + 1, port + 100);
-                if (alternativePort > 0) {
-                    System.out.println("Port " + port + " unavailable. Using alternative port " + alternativePort);
-                    port = alternativePort;
-                } else {
-                    throw new IOException("Port " + port + " is still in use and no alternative port available.");
-                }
-            }
-
+            int targetPort = port;
             try {
                 server = HTTPServer.builder()
-                        .port(port)
+                        .port(targetPort)
                         .registry(registry)
                         .buildAndStart();
-                currentPort = port;
-                System.out.println("✓ Prometheus metrics server started on port " + port);
-                System.out.println("  Metrics available at: http://localhost:" + port + "/metrics");
             } catch (IOException e) {
-                System.err.println("Failed to start Prometheus server on port " + port + ": " + e.getMessage());
-                throw e;
+                // 기본 포트 실패시 랜덤 포트 사용
+                targetPort = getRandomAvailablePort();
+                log.info("Port {} unavailable, using random port {}", port, targetPort);
+                server = HTTPServer.builder()
+                        .port(targetPort)
+                        .registry(registry)
+                        .buildAndStart();
             }
+            currentPort = targetPort;
+            log.info("Prometheus metrics server started - http://localhost:{}/metrics", currentPort);
         }
     }
 
-    private int findAvailablePort(int startPort, int endPort) {
-        for (int port = startPort; port <= endPort; port++) {
-            if (isPortAvailable(port)) {
-                return port;
-            }
-        }
-        return -1;
-    }
-
-    private boolean isPortAvailable(int port) {
-        try (ServerSocket socket = new ServerSocket(port)) {
-            socket.setReuseAddress(true);
-            return true;
-        } catch (IOException e) {
-            return false;
+    private int getRandomAvailablePort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
         }
     }
 
@@ -214,9 +188,9 @@ public class GatlingPrometheusMetrics {
         if (server != null) {
             try {
                 server.close();
-                System.out.println("Prometheus metrics server stopped");
+                log.info("Prometheus metrics server stopped");
             } catch (Exception e) {
-                System.err.println("Error stopping Prometheus server: " + e.getMessage());
+                log.error("Error stopping Prometheus server: {}", e.getMessage());
             } finally {
                 server = null;
                 currentPort = -1;
@@ -226,10 +200,6 @@ public class GatlingPrometheusMetrics {
 
     public boolean isServerRunning() {
         return server != null;
-    }
-
-    public int getCurrentPort() {
-        return currentPort;
     }
 
     public void recordRequest(String simulation, String scenario, String request,
@@ -269,17 +239,5 @@ public class GatlingPrometheusMetrics {
         usersFinishedCounter
                 .labelValues(simulation, scenario)
                 .inc();
-    }
-
-    public Histogram getResponseTimeHistogram() {
-        return responseTimeHistogram;
-    }
-
-    public Counter getRequestCounter() {
-        return requestCounter;
-    }
-
-    public Gauge getActiveUsersGauge() {
-        return activeUsersGauge;
     }
 }
