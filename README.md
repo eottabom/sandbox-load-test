@@ -16,7 +16,8 @@
 
 ## 전체 아키텍처 개요
 
-<img width="1040" height="1063" alt="image" src="https://github.com/user-attachments/assets/2d73b85c-f1c2-4901-9307-178cb1468829" />
+
+<img width="692" height="358" alt="image" src="https://github.com/user-attachments/assets/0a1759f7-074f-4d31-9ac3-b2186995c541" />
 
 ## TODO
 
