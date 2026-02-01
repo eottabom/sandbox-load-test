@@ -17,15 +17,6 @@ datasources:
     isDefault: false
     editable: false
 
-  - name: InfluxDB-Gatling
-    type: influxdb
-    uid: InfluxDB-Gatling
-    access: proxy
-    url: http://influxdb:8086
-    database: gatling
-    isDefault: false
-    editable: false
-
   - name: InfluxDB-Gatling-Realtime
     type: influxdb
     uid: InfluxDB-Gatling-Realtime
