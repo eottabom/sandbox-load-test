@@ -8,7 +8,7 @@ Prometheus Registry →
 HTTP Server (9102) → 
 Grafana/Prometheus
 
-### 노출되는 주묘 메트릭
+### 노출되는 주요 메트릭
 
 |메트릭 이름|타입|설명|라벨|
 |--|--|--|--|
