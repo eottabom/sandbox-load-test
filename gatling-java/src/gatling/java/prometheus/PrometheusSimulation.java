@@ -25,12 +25,4 @@ public abstract class PrometheusSimulation extends Simulation {
     public void after() {
         log.info("Simulation completed: {}", simulationName);
     }
-
-    protected GatlingPrometheusMetrics getMetrics() {
-        return metrics;
-    }
-
-    protected String getSimulationName() {
-        return simulationName;
-    }
 }

@@ -133,18 +133,6 @@ public class GatlingPrometheusMetrics {
         return instance;
     }
 
-    /**
-     * 인스턴스 리셋 - 테스트 재시작 시 호출
-     */
-    public static void reset() {
-        synchronized (lock) {
-            if (instance != null) {
-                instance.stopServerInternal();
-            }
-            // 인스턴스는 유지하고 서버만 재시작 가능하도록
-        }
-    }
-
     public void startServer(int port) throws IOException {
         synchronized (lock) {
             if (server != null) {
@@ -178,12 +166,6 @@ public class GatlingPrometheusMetrics {
         }
     }
 
-    public void stopServer() {
-        synchronized (lock) {
-            stopServerInternal();
-        }
-    }
-
     private void stopServerInternal() {
         if (server != null) {
             try {
@@ -196,10 +178,6 @@ public class GatlingPrometheusMetrics {
                 currentPort = -1;
             }
         }
-    }
-
-    public boolean isServerRunning() {
-        return server != null;
     }
 
     public void recordRequest(String simulation, String scenario, String request,
