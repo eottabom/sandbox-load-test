@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'io.gatling.gradle'
+    id 'com.gradleup.shadow'
 }
 
 repositories {
@@ -19,3 +20,25 @@ dependencies {
     gatlingImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
 }
+
+shadowJar {
+    archiveBaseName.set('gatling-load-test')
+    archiveClassifier.set('')
+    archiveVersion.set('1.0.0')
+
+    manifest {
+        attributes 'Main-Class': 'runner.GatlingRunner'
+    }
+
+    from sourceSets.gatling.output
+
+    configurations = [project.configurations.gatlingRuntimeClasspath]
+
+    mergeServiceFiles()
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+shadowJar.dependsOn(compileGatlingJava)
+
+build.dependsOn shadowJar
