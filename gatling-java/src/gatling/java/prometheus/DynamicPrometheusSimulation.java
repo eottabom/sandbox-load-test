@@ -18,10 +18,6 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 		targetClassName = className;
 	}
 
-	public static void reset() {
-		targetClassName = null;
-	}
-
 	public DynamicPrometheusSimulation() {
 		if (targetClassName == null || targetClassName.isEmpty()) {
 			throw new IllegalStateException(
@@ -82,7 +78,7 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 			// Protocol 래핑 - 자동 메트릭 수집
 			final String finalSimName = simName;
 			final String finalScenarioName = scenarioName;
-			final GatlingPrometheusMetrics metrics = getMetrics();
+			final GatlingPrometheusMetrics metrics = this.metrics;
 
 			HttpProtocolBuilder wrappedProtocol = protocol
 					.transformResponse((response, session) -> {
@@ -145,6 +141,4 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 			);
 		}
 	}
-
-
 }

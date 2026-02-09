@@ -16,10 +16,6 @@ public abstract class PrometheusSimulation extends Simulation {
 		this.metrics = GatlingPrometheusMetrics.getInstance();
 	}
 
-	protected GatlingPrometheusMetrics getMetrics() {
-		return metrics;
-	}
-
 	@Override
 	public void before() {
 		log.info("Starting simulation: {}", simulationName);

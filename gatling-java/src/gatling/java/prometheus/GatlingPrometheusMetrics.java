@@ -57,10 +57,6 @@ public class GatlingPrometheusMetrics {
 		}
 	}
 
-	public void startDefaultServer() throws IOException {
-		startServer(DEFAULT_PORT);
-	}
-
 	private boolean isAutoStartEnabled() {
 		String prop = System.getProperty(AUTO_START_PROPERTY);
 		if (prop != null) {
@@ -182,20 +178,16 @@ public class GatlingPrometheusMetrics {
 
 	public void stopServer() {
 		synchronized (lock) {
-			stopServerInternal();
-		}
-	}
-
-	private void stopServerInternal() {
-		if (server != null) {
-			try {
-				server.close();
-				log.info("Prometheus metrics server stopped");
-			} catch (Exception e) {
-				log.error("Error stopping Prometheus server: {}", e.getMessage());
-			} finally {
-				server = null;
-				currentPort = -1;
+			if (server != null) {
+				try {
+					server.close();
+					log.info("Prometheus metrics server stopped");
+				} catch (Exception e) {
+					log.error("Error stopping Prometheus server: {}", e.getMessage());
+				} finally {
+					server = null;
+					currentPort = -1;
+				}
 			}
 		}
 	}
@@ -284,16 +276,5 @@ public class GatlingPrometheusMetrics {
 	}
 
 	private record ActiveKey(String simulation, String scenario) {
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (!(o instanceof ActiveKey(String simulation1, String scenario1))) {
-				return false;
-			}
-			return simulation.equals(simulation1) && scenario.equals(scenario1);
-		}
 	}
 }

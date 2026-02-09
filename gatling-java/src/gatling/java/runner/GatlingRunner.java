@@ -57,8 +57,6 @@ public class GatlingRunner {
 		// 클래스명만 저장 (인스턴스화는 Gatling 런타임 내부에서)
 		DynamicPrometheusSimulation.setTargetClass(className);
 
-		log.info("Starting gatling {}", className);
-
 		// Gatling 실행 → Gatling이 DynamicPrometheusSimulation 로드
 		io.gatling.app.Gatling.main(new String[]{
 				"--simulation", DynamicPrometheusSimulation.class.getName(),
