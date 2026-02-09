@@ -13,9 +13,16 @@ import java.lang.reflect.Field;
 public class DynamicPrometheusSimulation extends PrometheusSimulation {
 
 	private static volatile String targetClassName;
+	private static volatile ClassLoader targetClassLoader;
 
 	public static void setTargetClass(String className) {
 		targetClassName = className;
+		targetClassLoader = null;
+	}
+
+	public static void setTargetClass(String className, ClassLoader classLoader) {
+		targetClassName = className;
+		targetClassLoader = classLoader;
 	}
 
 	public DynamicPrometheusSimulation() {
@@ -27,7 +34,9 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 
 		try {
 			// Gatling 런타임 내부에서 리플렉션 수행
-			Class<?> clazz = Class.forName(targetClassName);
+			Class<?> clazz = targetClassLoader != null
+					? Class.forName(targetClassName, true, targetClassLoader)
+					: Class.forName(targetClassName);
 			Object instance = clazz.getDeclaredConstructor().newInstance();
 
 			// 시뮬레이션 이름
@@ -82,8 +91,8 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 
 			HttpProtocolBuilder wrappedProtocol = protocol
 					.transformResponse((response, session) -> {
-						String requestName = session.getString("gatling.http.requestName");
-						if (requestName == null) {
+						String requestName = response.request().getName();
+						if (requestName == null || requestName.isEmpty()) {
 							requestName = "unknown";
 						}
 
