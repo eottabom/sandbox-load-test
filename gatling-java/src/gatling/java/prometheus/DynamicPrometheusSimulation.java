@@ -90,7 +90,7 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 			final GatlingPrometheusMetrics metrics = this.metrics;
 
 			HttpProtocolBuilder wrappedProtocol = protocol
-					.transformResponse((response, session) -> {
+					.transformResponse((response, _) -> {
 						String requestName = response.request().getName();
 						if (requestName == null || requestName.isEmpty()) {
 							requestName = "unknown";
