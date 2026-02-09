@@ -17,8 +17,7 @@ public class GatlingPrometheusMetrics {
 
 	private static final Logger log = LoggerFactory.getLogger(GatlingPrometheusMetrics.class);
 	private static final int DEFAULT_PORT = 9102;
-	private static final String AUTO_START_PROPERTY = "prometheus.autoStart";
-	private static final String AUTO_START_ENV = "PROMETHEUS_AUTO_START";
+	private static final String UNKNOWN = "unknown";
 	private static volatile GatlingPrometheusMetrics instance;
 	private static final Object lock = new Object();
 	private static volatile boolean shutdownHookRegistered = false;
@@ -40,11 +39,7 @@ public class GatlingPrometheusMetrics {
 		this.registry = PrometheusRegistry.defaultRegistry;
 		registerMetrics();
 		registerShutdownHook();
-		if (isAutoStartEnabled()) {
-			autoStartServer();
-		} else {
-			log.info("Prometheus auto-start disabled. Call startServer(port) to expose /metrics.");
-		}
+		autoStartServer();
 	}
 
 	private void autoStartServer() {
@@ -55,18 +50,6 @@ public class GatlingPrometheusMetrics {
 			throw new IllegalStateException("Failed to start Prometheus metrics server on port "
 					+ DEFAULT_PORT + ". Check port availability.", e);
 		}
-	}
-
-	private boolean isAutoStartEnabled() {
-		String prop = System.getProperty(AUTO_START_PROPERTY);
-		if (prop != null) {
-			return Boolean.parseBoolean(prop);
-		}
-		String env = System.getenv(AUTO_START_ENV);
-		if (env != null) {
-			return Boolean.parseBoolean(env);
-		}
-		return true;
 	}
 
 	private void registerMetrics() {
@@ -212,26 +195,10 @@ public class GatlingPrometheusMetrics {
 		String safeSimulation = normalizeLabel(simulation);
 		String safeScenario = normalizeLabel(scenario);
 		String safeRequest = normalizeLabel(request);
-		String safeError = normalizeHttpError(errorMessage);
+		String safeError = normalizeLabel(errorMessage);
 		errorCounter
 				.labelValues(safeSimulation, safeScenario, safeRequest, safeError)
 				.inc();
-	}
-
-	private String normalizeHttpError(String errorMessage) {
-		if (errorMessage == null) {
-			return "HTTP_UNKNOWN";
-		}
-
-		int idx = errorMessage.indexOf("HTTP_");
-		if (idx >= 0 && errorMessage.length() >= idx + 8) {
-			String candidate = errorMessage.substring(idx + 5, idx + 8);
-			if (candidate.chars().allMatch(Character::isDigit)) {
-				return "HTTP_" + candidate;
-			}
-		}
-
-		return "HTTP_UNKNOWN";
 	}
 
 	public void userStarted(String simulation, String scenario) {
@@ -269,10 +236,10 @@ public class GatlingPrometheusMetrics {
 
 	private String normalizeLabel(String value) {
 		if (value == null) {
-			return "unknown";
+			return UNKNOWN;
 		}
 		String trimmed = value.trim();
-		return trimmed.isEmpty() ? "unknown" : trimmed;
+		return trimmed.isEmpty() ? UNKNOWN : trimmed;
 	}
 
 	private record ActiveKey(String simulation, String scenario) {
