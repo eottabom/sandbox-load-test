@@ -1,7 +1,33 @@
 name: 🚀 Feature Request
 description: 새로운 기능을 제안합니다.
-labels: ["enhancement"]
+labels: ["new feature"]
 body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 🏷️ 관련 영역
+      description: 이 기능이 해당하는 영역을 선택해주세요.
+      multiple: true
+      options:
+        - area:observability
+        - area:perf-back
+        - area:perf-front
+        - area:runner
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 우선순위
+      description: 이 기능의 우선순위를 선택해주세요.
+      options:
+        - P0 (높음)
+        - P1 (보통)
+        - P2 (낮음)
+    validations:
+      required: false
+
   - type: textarea
     id: context
     attributes:
