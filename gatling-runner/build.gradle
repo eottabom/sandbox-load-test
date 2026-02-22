@@ -21,22 +21,45 @@ gatling {
 }
 
 dependencies {
+
+    // prometheus
     gatlingImplementation "io.prometheus:prometheus-metrics-core:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exposition-formats:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
 
+    // gatling output
     testImplementation sourceSets.gatling.output
+
+    // test
+    // prometheus
+    testImplementation "io.prometheus:prometheus-metrics-core:${prometheusVersion}"
+    testImplementation "io.prometheus:prometheus-metrics-exposition-formats:${prometheusVersion}"
+    testImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
+    testImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
+
+    // JUnit
     testImplementation platform("org.junit:junit-bom:${junitVersion}")
     testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly   "org.junit.platform:junit-platform-launcher"
+
+    // assertJ
     testImplementation "org.assertj:assertj-core:${assertjVersion}"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+    // testcontainers
+    testImplementation platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
+    testImplementation "org.testcontainers:testcontainers"
+    testImplementation "org.testcontainers:junit-jupiter"
+
+    testRuntimeOnly "org.slf4j:slf4j-simple:${slf4jVersion}"
 }
 
 compileTestJava.dependsOn(compileGatlingJava)
 
 test {
     useJUnitPlatform()
+    jvmArgs '-Dapi.version=1.44'
+    environment "TESTCONTAINERS_RYUK_DISABLED", "true"
 }
 
 shadowJar {
