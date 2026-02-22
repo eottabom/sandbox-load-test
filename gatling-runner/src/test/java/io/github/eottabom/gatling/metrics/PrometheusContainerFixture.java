@@ -21,7 +21,9 @@ import static org.awaitility.Awaitility.await;
 @Testcontainers
 abstract class PrometheusContainerFixture {
 
-	private static final HttpClient httpClient = HttpClient.newHttpClient();
+	private static final HttpClient httpClient = HttpClient.newBuilder()
+			.connectTimeout(Duration.ofSeconds(5))
+			.build();
 
 	@Container
 	static GenericContainer<?> prometheus = new GenericContainer<>(DockerImageName.parse("prom/prometheus:v3.2.1"))
@@ -55,7 +57,11 @@ abstract class PrometheusContainerFixture {
 	private String fetchBody(String url, String metric) {
 		try {
 			return httpClient.send(
-					HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
+					HttpRequest.newBuilder()
+							.uri(URI.create(url))
+							.timeout(Duration.ofSeconds(5))
+							.GET()
+							.build(),
 					HttpResponse.BodyHandlers.ofString()
 			).body();
 		} catch (InterruptedException ex) {
