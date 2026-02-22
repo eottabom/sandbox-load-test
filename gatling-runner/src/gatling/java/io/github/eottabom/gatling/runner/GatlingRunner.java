@@ -14,9 +14,9 @@ import java.nio.file.Path;
  * 어노테이션 기반 Gatling 테스트 러너.
  * <p>
  * 사용법:
- * java -jar gatling-load-test.jar MyScenario
- * java -jar gatling-load-test.jar scenarios.MyScenario
- * java -jar gatling-load-test.jar /tmp/SampleScenario.java
+ + java -jar gatling-runner-1.0.0.jar MyScenario
+ + java -jar gatling-runner-1.0.0.jar scenarios.MyScenario
+ + java -jar gatling-runner-1.0.0.jar /tmp/SampleScenario.java
  */
 public class GatlingRunner {
 
