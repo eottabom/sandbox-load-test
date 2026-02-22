@@ -13,8 +13,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @Testcontainers
 abstract class PrometheusContainerFixture {
@@ -44,19 +46,10 @@ abstract class PrometheusContainerFixture {
 				prometheus.getMappedPort(9090),
 				metric
 		);
-		for (int i = 0; i < 15; i++) {
-			var body = fetchBody(url, metric);
-			if (!body.contains("\"result\":[]")) {
-				return body;
-			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-				Thread.currentThread().interrupt();
-				throw new AssertionError("Interrupted while polling metric: " + metric, ex);
-			}
-		}
-		return fetchBody(url, metric);
+		return await()
+				.atMost(15, TimeUnit.SECONDS)
+				.pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> fetchBody(url, metric), body -> !body.contains("\"result\":[]"));
 	}
 
 	private String fetchBody(String url, String metric) {
