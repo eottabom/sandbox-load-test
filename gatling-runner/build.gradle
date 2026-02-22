@@ -14,16 +14,26 @@ java {
     }
 }
 
+// Gatling 플러그인이 test 출력물을 gatling classpath에 포함하는 것을 끄면
+// compileGatlingJava → testClasses 의존을 피할 수 있다.
+gatling {
+    includeTestOutput = false
+}
+
 dependencies {
     gatlingImplementation "io.prometheus:prometheus-metrics-core:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exposition-formats:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
 
+    testImplementation sourceSets.gatling.output
     testImplementation platform("org.junit:junit-bom:${junitVersion}")
     testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "org.assertj:assertj-core:${assertjVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
+
+compileTestJava.dependsOn(compileGatlingJava)
 
 test {
     useJUnitPlatform()
