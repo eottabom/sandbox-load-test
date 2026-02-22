@@ -1,0 +1,8 @@
+pluginManagement {
+    plugins {
+        id 'io.gatling.gradle' version "${gatlingVersion}"
+        id 'com.gradleup.shadow' version "${shadowVersion}"
+    }
+}
+
+rootProject.name = 'gatling-runner'

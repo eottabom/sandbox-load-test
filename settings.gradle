@@ -1,4 +1,4 @@
 rootProject.name = 'sandbox-load-test'
 
-includeBuild('gatling-java')
+includeBuild('gatling-runner')
 includeBuild('perf-backend')
