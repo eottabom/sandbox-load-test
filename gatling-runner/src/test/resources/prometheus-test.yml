@@ -5,4 +5,4 @@ global:
 scrape_configs:
   - job_name: gatling
     static_configs:
-      - targets: ['host.docker.internal:9102']
+      - targets: ['host.testcontainers.internal:9102']

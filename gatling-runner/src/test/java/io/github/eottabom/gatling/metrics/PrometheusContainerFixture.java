@@ -21,6 +21,10 @@ import static org.awaitility.Awaitility.await;
 @Testcontainers
 abstract class PrometheusContainerFixture {
 
+	static {
+		org.testcontainers.Testcontainers.exposeHostPorts(9102);
+	}
+
 	private static final HttpClient httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
@@ -51,7 +55,7 @@ abstract class PrometheusContainerFixture {
 		return await()
 				.atMost(15, TimeUnit.SECONDS)
 				.pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> fetchBody(url, metric), body -> !body.contains("\"result\":[]"));
+				.until(() -> fetchBody(url, metric), body -> body.contains("\"status\":\"success\"") && !body.contains("\"result\":[]"));
 	}
 
 	private String fetchBody(String url, String metric) {
@@ -68,7 +72,7 @@ abstract class PrometheusContainerFixture {
 			Thread.currentThread().interrupt();
 			throw new AssertionError("Interrupted while querying metric: " + metric, ex);
 		} catch (IOException ex) {
-			throw new AssertionError("Failed to query Prometheus for metric: " + metric, ex);
+			return "";
 		}
 	}
 }
