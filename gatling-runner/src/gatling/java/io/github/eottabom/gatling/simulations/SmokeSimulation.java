@@ -1,14 +1,14 @@
-package simulations;
+package io.github.eottabom.gatling.simulations;
 
 import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
-import prometheus.PrometheusSimulation;
+import io.github.eottabom.gatling.core.PrometheusSimulation;
 
 import java.time.Duration;
 
 import static io.gatling.javaapi.core.CoreDsl.*;
 import static io.gatling.javaapi.http.HttpDsl.http;
-import static prometheus.PrometheusHttpDsl.*;
+import static io.github.eottabom.gatling.metrics.PrometheusHttpDsl.*;
 
 public class SmokeSimulation extends PrometheusSimulation {
 

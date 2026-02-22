@@ -1,10 +1,10 @@
-package runner;
+package io.github.eottabom.gatling.runner;
 
 import io.gatling.app.Gatling;
+import io.github.eottabom.gatling.annotation.LoadTest;
+import io.github.eottabom.gatling.core.DynamicPrometheusSimulation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import prometheus.DynamicPrometheusSimulation;
-import prometheus.annotation.LoadTest;
 import sun.misc.Signal;
 
 import java.nio.file.Files;
@@ -22,7 +22,7 @@ public class GatlingRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(GatlingRunner.class);
 
-	private static final String DEFAULT_PACKAGE = "simulations";
+	private static final String DEFAULT_PACKAGE = "io.github.eottabom.gatling.simulations";
 
 	public static void main(String[] args) {
 		Signal.handle(new Signal("TSTP"), _ -> {

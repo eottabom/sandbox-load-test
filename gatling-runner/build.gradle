@@ -19,15 +19,23 @@ dependencies {
     gatlingImplementation "io.prometheus:prometheus-metrics-exposition-formats:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
     gatlingImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
+
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
 }
 
 shadowJar {
-    archiveBaseName.set('gatling-load-test')
+    archiveBaseName.set('gatling-runner')
     archiveClassifier.set('')
     archiveVersion.set('1.0.0')
 
     manifest {
-        attributes 'Main-Class': 'runner.GatlingRunner'
+        attributes 'Main-Class': 'io.github.eottabom.gatling.runner.GatlingRunner'
     }
 
     from sourceSets.gatling.output

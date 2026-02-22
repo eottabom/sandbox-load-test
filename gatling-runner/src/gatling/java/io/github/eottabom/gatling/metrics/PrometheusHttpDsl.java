@@ -1,4 +1,4 @@
-package prometheus;
+package io.github.eottabom.gatling.metrics;
 
 import io.gatling.javaapi.core.ChainBuilder;
 import io.gatling.javaapi.http.HttpRequestActionBuilder;

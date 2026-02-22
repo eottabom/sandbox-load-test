@@ -1,12 +1,13 @@
-package prometheus;
+package io.github.eottabom.gatling.core;
 
 import io.gatling.javaapi.core.OpenInjectionStep;
 import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
-import prometheus.annotation.Injection;
-import prometheus.annotation.LoadTest;
-import prometheus.annotation.Protocol;
-import prometheus.annotation.Scenario;
+import io.github.eottabom.gatling.annotation.Injection;
+import io.github.eottabom.gatling.annotation.LoadTest;
+import io.github.eottabom.gatling.annotation.Protocol;
+import io.github.eottabom.gatling.annotation.Scenario;
+import io.github.eottabom.gatling.metrics.GatlingPrometheusMetrics;
 
 import java.lang.reflect.Field;
 

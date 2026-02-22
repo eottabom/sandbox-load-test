@@ -1,4 +1,4 @@
-package prometheus;
+package io.github.eottabom.gatling.metrics;
 
 import io.prometheus.metrics.core.metrics.Counter;
 import io.prometheus.metrics.core.metrics.Gauge;

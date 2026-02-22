@@ -1,8 +1,8 @@
-package simulations;
+package io.github.eottabom.gatling.simulations;
 
 import io.gatling.javaapi.core.*;
 import io.gatling.javaapi.http.*;
-import prometheus.annotation.*;
+import io.github.eottabom.gatling.annotation.*;
 
 import java.time.Duration;
 
@@ -12,8 +12,8 @@ import static io.gatling.javaapi.http.HttpDsl.*;
 /**
  * 샘플 부하 테스트 시나리오.
  *
- * 실행: java -jar gatling-load-test.jar SampleScenario
- * (java --add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -jar gatling-load-test-1.0.0.jar SampleScenario)
+ * 실행: java -jar gatling-runner-1.0.0.jar SampleScenario
+ * (java --add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -jar gatling-runner-1.0.0.jar io.github.eottabom.gatling.simulations.SampleScenario)
  */
 @LoadTest
 public class SampleScenario {

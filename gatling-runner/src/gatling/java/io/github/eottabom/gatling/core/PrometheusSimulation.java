@@ -1,6 +1,7 @@
-package prometheus;
+package io.github.eottabom.gatling.core;
 
 import io.gatling.javaapi.core.Simulation;
+import io.github.eottabom.gatling.metrics.GatlingPrometheusMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
