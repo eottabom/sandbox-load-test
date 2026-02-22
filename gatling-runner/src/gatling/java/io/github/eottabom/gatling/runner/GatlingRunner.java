@@ -5,8 +5,6 @@ import io.github.eottabom.gatling.annotation.LoadTest;
 import io.github.eottabom.gatling.core.DynamicPrometheusSimulation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.Signal;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -25,10 +23,9 @@ public class GatlingRunner {
 	private static final String DEFAULT_PACKAGE = "io.github.eottabom.gatling.simulations";
 
 	public static void main(String[] args) {
-		Signal.handle(new Signal("TSTP"), _ -> {
-			log.info("\nCtrl+Z detected - shutting down (port cleanup)...");
-			System.exit(0);
-		});
+		Runtime.getRuntime().addShutdownHook(new Thread(() ->
+				log.info("Shutdown hook triggered - cleaning up...")
+		));
 
 		if (args.length < 1) {
 			printUsage();
