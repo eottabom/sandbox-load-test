@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'io.gatling.gradle'
-    id 'com.gradleup.shadow'
+    alias(libs.plugins.gatling)
+    alias(libs.plugins.shadow)
 }
 
 repositories {
@@ -10,7 +10,7 @@ repositories {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion)
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
     }
 }
 
@@ -27,32 +27,32 @@ configurations {
 dependencies {
 
     // prometheus
-    gatlingImplementation "io.prometheus:prometheus-metrics-core:${prometheusVersion}"
-    gatlingImplementation "io.prometheus:prometheus-metrics-exposition-formats:${prometheusVersion}"
-    gatlingImplementation "io.prometheus:prometheus-metrics-instrumentation-jvm:${prometheusVersion}"
-    gatlingImplementation "io.prometheus:prometheus-metrics-exporter-httpserver:${prometheusVersion}"
+    gatlingImplementation libs.prometheus.metrics.core
+    gatlingImplementation libs.prometheus.metrics.exposition.formats
+    gatlingImplementation libs.prometheus.metrics.instrumentation.jvm
+    gatlingImplementation libs.prometheus.metrics.exporter.httpserver
 
     // gatling output
     testImplementation sourceSets.gatling.output
 
     // JUnit
-    testImplementation platform("org.junit:junit-bom:${junitVersion}")
-    testImplementation "org.junit.jupiter:junit-jupiter"
-    testRuntimeOnly   "org.junit.platform:junit-platform-launcher"
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly    libs.junit.platform.launcher
 
     // assertJ
-    testImplementation "org.assertj:assertj-core:${assertjVersion}"
+    testImplementation libs.assertj.core
 
     // testcontainers
-    testImplementation platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
-    testImplementation "org.testcontainers:testcontainers"
-    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation platform(libs.testcontainers.bom)
+    testImplementation libs.testcontainers.core
+    testImplementation libs.testcontainers.junit.jupiter
 
     // awaitility
-    testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
+    testImplementation libs.awaitility
 
     // slf4j
-    testRuntimeOnly "org.slf4j:slf4j-simple:${slf4jVersion}"
+    testRuntimeOnly libs.slf4j.simple
 }
 
 compileTestJava.dependsOn(compileGatlingJava)
