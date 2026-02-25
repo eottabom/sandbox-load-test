@@ -28,6 +28,14 @@ testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
 awaitility   = { module = "org.awaitility:awaitility",   version.ref = "awaitility" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple",      version.ref = "slf4j" }
 
+[bundles]
+prometheus = [
+    "prometheus-metrics-core",
+    "prometheus-metrics-exposition-formats",
+    "prometheus-metrics-instrumentation-jvm",
+    "prometheus-metrics-exporter-httpserver",
+]
+
 [plugins]
 gatling = { id = "io.gatling.gradle",      version.ref = "gatling" }
 shadow  = { id = "com.gradleup.shadow",    version.ref = "shadow" }

@@ -27,10 +27,7 @@ configurations {
 dependencies {
 
     // prometheus
-    gatlingImplementation libs.prometheus.metrics.core
-    gatlingImplementation libs.prometheus.metrics.exposition.formats
-    gatlingImplementation libs.prometheus.metrics.instrumentation.jvm
-    gatlingImplementation libs.prometheus.metrics.exporter.httpserver
+    gatlingImplementation libs.bundles.prometheus
 
     // gatling output
     testImplementation sourceSets.gatling.output
