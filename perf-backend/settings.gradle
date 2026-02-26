@@ -1,8 +1,8 @@
-pluginManagement {
-    plugins {
-        id 'java'
-        id 'org.springframework.boot' version "${springBootVersion}"
-        id 'io.spring.dependency-management' version "${dependencyManagementVersion}"
+dependencyResolutionManagement {
+    versionCatalogs {
+        shared {
+            from(files("../gradle/libs.versions.toml"))
+        }
     }
 }
 
