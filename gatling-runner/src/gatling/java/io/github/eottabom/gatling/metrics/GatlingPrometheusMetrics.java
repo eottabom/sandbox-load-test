@@ -3,7 +3,6 @@ package io.github.eottabom.gatling.metrics;
 import io.prometheus.metrics.core.metrics.Counter;
 import io.prometheus.metrics.core.metrics.Gauge;
 import io.prometheus.metrics.core.metrics.Histogram;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import org.slf4j.Logger;
@@ -20,12 +19,10 @@ public class GatlingPrometheusMetrics {
 	private static final String UNKNOWN = "unknown";
 	private static volatile GatlingPrometheusMetrics instance;
 	private static final Object lock = new Object();
-	private static volatile boolean shutdownHookRegistered = false;
 	private static volatile boolean metricsRegistered = false;
 
 	private final PrometheusRegistry registry;
-	private volatile HTTPServer server;
-	private volatile int currentPort = -1;
+	private final PrometheusServerManager serverManager;
 
 	private Histogram responseTimeHistogram;
 	private Counter requestCounter;
@@ -37,14 +34,15 @@ public class GatlingPrometheusMetrics {
 
 	private GatlingPrometheusMetrics() {
 		this.registry = PrometheusRegistry.defaultRegistry;
+		this.serverManager = new PrometheusServerManager(registry);
 		registerMetrics();
-		registerShutdownHook();
+		serverManager.registerShutdownHook();
 		autoStartServer();
 	}
 
 	private void autoStartServer() {
 		try {
-			startServer(DEFAULT_PORT);
+			serverManager.startServer(DEFAULT_PORT);
 		} catch (IOException e) {
 			log.error("Could not start Prometheus server: {}", e.getMessage());
 			throw new IllegalStateException("Failed to start Prometheus metrics server on port "
@@ -117,16 +115,6 @@ public class GatlingPrometheusMetrics {
 		}
 	}
 
-	private void registerShutdownHook() {
-		if (!shutdownHookRegistered) {
-			shutdownHookRegistered = true;
-			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-				log.info("Shutdown hook triggered - stopping Prometheus server...");
-				stopServer();
-			}, "prometheus-shutdown-hook"));
-		}
-	}
-
 	public static GatlingPrometheusMetrics getInstance() {
 		if (instance == null) {
 			synchronized (lock) {
@@ -136,43 +124,6 @@ public class GatlingPrometheusMetrics {
 			}
 		}
 		return instance;
-	}
-
-	public void startServer(int port) throws IOException {
-		synchronized (lock) {
-			if (server != null) {
-				log.debug("Prometheus metrics server already running on port {}", currentPort);
-				return;
-			}
-
-			try {
-				server = HTTPServer.builder()
-						.port(port)
-						.registry(registry)
-						.buildAndStart();
-			} catch (IOException e) {
-				throw new IOException("Port " + port + " is occupied. "
-						+ "Stop the process using that port or configure a different port.", e);
-			}
-			currentPort = port;
-			log.info("Prometheus metrics server started - http://localhost:{}/metrics", currentPort);
-		}
-	}
-
-	public void stopServer() {
-		synchronized (lock) {
-			if (server != null) {
-				try {
-					server.close();
-					log.info("Prometheus metrics server stopped");
-				} catch (Exception e) {
-					log.error("Error stopping Prometheus server: {}", e.getMessage());
-				} finally {
-					server = null;
-					currentPort = -1;
-				}
-			}
-		}
 	}
 
 	public void recordRequest(String simulation, String scenario, String request,
