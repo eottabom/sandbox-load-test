@@ -11,4 +11,14 @@ record SimulationDescriptor(
 		ScenarioBuilder scenario,
 		OpenInjectionStep[] injection
 ) {
+	SimulationDescriptor {
+		if (injection != null) {
+			injection = injection.clone();
+		}
+	}
+
+	@Override
+	public OpenInjectionStep[] injection() {
+		return injection != null ? injection.clone() : null;
+	}
 }

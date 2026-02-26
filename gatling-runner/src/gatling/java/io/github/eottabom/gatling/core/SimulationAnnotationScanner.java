@@ -29,7 +29,10 @@ class SimulationAnnotationScanner {
 			field.setAccessible(true);
 
 			if (field.isAnnotationPresent(Protocol.class)) {
-				protocol = (HttpProtocolBuilder) field.get(instance);
+				Object value = field.get(instance);
+				if (value instanceof HttpProtocolBuilder pb) {
+					protocol = pb;
+				}
 			}
 
 			if (field.isAnnotationPresent(Scenario.class)) {
@@ -61,10 +64,10 @@ class SimulationAnnotationScanner {
 
 	private String extractScenarioName(ScenarioBuilder scenario) {
 		try {
-			Field nameField = scenario.getClass().getDeclaredField("name");
+			Field nameField = scenario.wrapped.getClass().getDeclaredField("name");
 			nameField.setAccessible(true);
-			return (String) nameField.get(scenario);
-		} catch (Exception e) {
+			return (String) nameField.get(scenario.wrapped);
+		} catch (ReflectiveOperationException e) {
 			return null;
 		}
 	}

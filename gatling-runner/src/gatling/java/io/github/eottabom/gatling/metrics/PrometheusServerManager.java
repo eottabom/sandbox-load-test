@@ -6,13 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.BindException;
 
 class PrometheusServerManager {
 
 	private static final Logger log = LoggerFactory.getLogger(PrometheusServerManager.class);
-	private static final Object lock = new Object();
 	private static volatile boolean shutdownHookRegistered = false;
 
+	private final Object lock = new Object();
 	private final PrometheusRegistry registry;
 	private volatile HTTPServer server;
 	private volatile int currentPort = -1;
@@ -33,7 +34,7 @@ class PrometheusServerManager {
 						.port(port)
 						.registry(registry)
 						.buildAndStart();
-			} catch (IOException e) {
+			} catch (BindException e) {
 				throw new IOException("Port " + port + " is occupied. "
 						+ "Stop the process using that port or configure a different port.", e);
 			}
