@@ -1,15 +1,7 @@
 package io.github.eottabom.gatling.core;
 
-import io.gatling.javaapi.core.OpenInjectionStep;
-import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
-import io.github.eottabom.gatling.annotation.Injection;
-import io.github.eottabom.gatling.annotation.LoadTest;
-import io.github.eottabom.gatling.annotation.Protocol;
-import io.github.eottabom.gatling.annotation.Scenario;
-import io.github.eottabom.gatling.metrics.GatlingPrometheusMetrics;
-
-import java.lang.reflect.Field;
+import io.github.eottabom.gatling.metrics.PrometheusProtocolWrapper;
 
 public class DynamicPrometheusSimulation extends PrometheusSimulation {
 
@@ -34,85 +26,15 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 		}
 
 		try {
-			// Gatling 런타임 내부에서 리플렉션 수행
-			Class<?> clazz = targetClassLoader != null
-					? Class.forName(targetClassName, true, targetClassLoader)
-					: Class.forName(targetClassName);
-			Object instance = clazz.getDeclaredConstructor().newInstance();
+			Class<?> clazz = loadClass();
+			SimulationDescriptor descriptor = new SimulationAnnotationScanner().scan(clazz);
 
-			// 시뮬레이션 이름
-			LoadTest loadTestAnnotation = clazz.getAnnotation(LoadTest.class);
-			String simName = (loadTestAnnotation != null && !loadTestAnnotation.name().isEmpty())
-					? loadTestAnnotation.name()
-					: clazz.getSimpleName();
+			HttpProtocolBuilder wrappedProtocol = PrometheusProtocolWrapper.wrap(
+					descriptor.protocol(), metrics, descriptor.simulationName(), descriptor.scenarioName()
+			);
 
-			// 필드 스캔
-			HttpProtocolBuilder protocol = null;
-			ScenarioBuilder scenario = null;
-			OpenInjectionStep[] injection = null;
-			String scenarioName = null;
-
-			for (Field field : clazz.getDeclaredFields()) {
-				field.setAccessible(true);
-
-				if (field.isAnnotationPresent(Protocol.class)) {
-					protocol = (HttpProtocolBuilder) field.get(instance);
-				}
-
-				if (field.isAnnotationPresent(Scenario.class)) {
-					Object value = field.get(instance);
-					if (value instanceof ScenarioBuilder sb) {
-						scenario = sb;
-						// 시나리오 이름 추출 시도
-						scenarioName = extractScenarioName(sb);
-					}
-				}
-
-				if (field.isAnnotationPresent(Injection.class)) {
-					Object value = field.get(instance);
-					if (value instanceof OpenInjectionStep[] steps) {
-						injection = steps;
-					} else if (value instanceof OpenInjectionStep step) {
-						injection = new OpenInjectionStep[]{step};
-					}
-				}
-			}
-
-			// 검증
-			validateConfiguration(protocol, scenario, injection);
-
-			if (scenarioName == null || scenarioName.isEmpty()) {
-				scenarioName = simName + " Scenario";
-			}
-
-			// Protocol 래핑 - 자동 메트릭 수집
-			final String finalSimName = simName;
-			final String finalScenarioName = scenarioName;
-			final GatlingPrometheusMetrics metrics = this.metrics;
-
-			HttpProtocolBuilder wrappedProtocol = protocol
-					.transformResponse((response, _) -> {
-						String requestName = response.request().getName();
-						if (requestName == null || requestName.isEmpty()) {
-							requestName = "unknown";
-						}
-
-						int statusCode = response.status().code();
-						long responseTime = response.endTimestamp() - response.startTimestamp();
-						boolean success = statusCode >= 200 && statusCode < 400;
-
-						metrics.recordRequest(finalSimName, finalScenarioName, requestName, success, responseTime);
-
-						if (!success) {
-							metrics.recordError(finalSimName, finalScenarioName, requestName, "HTTP_" + statusCode);
-						}
-
-						return response;
-					});
-
-			// 시뮬레이션 설정
 			setUp(
-					scenario.injectOpen(injection)
+					descriptor.scenario().injectOpen(descriptor.injection())
 			).protocols(wrappedProtocol);
 
 		} catch (ReflectiveOperationException e) {
@@ -120,35 +42,9 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 		}
 	}
 
-	private String extractScenarioName(ScenarioBuilder scenario) {
-		try {
-			Field nameField = scenario.getClass().getDeclaredField("name");
-			nameField.setAccessible(true);
-			return (String) nameField.get(scenario);
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private void validateConfiguration(HttpProtocolBuilder protocol,
-									   ScenarioBuilder scenario,
-									   OpenInjectionStep[] injection) {
-		StringBuilder errors = new StringBuilder();
-
-		if (protocol == null) {
-			errors.append("  - Missing @Protocol field (HttpProtocolBuilder)\n");
-		}
-		if (scenario == null) {
-			errors.append("  - Missing @Scenario field (ScenarioBuilder)\n");
-		}
-		if (injection == null) {
-			errors.append("  - Missing @Injection field (OpenInjectionStep[] or OpenInjectionStep)\n");
-		}
-
-		if (!errors.isEmpty()) {
-			throw new IllegalStateException(
-					"Invalid configuration in " + targetClassName + ":\n" + errors
-			);
-		}
+	private Class<?> loadClass() throws ClassNotFoundException {
+		return targetClassLoader != null
+				? Class.forName(targetClassName, true, targetClassLoader)
+				: Class.forName(targetClassName);
 	}
 }
