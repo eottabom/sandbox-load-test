@@ -15,14 +15,14 @@ prometheus-metrics-instrumentation-jvm   = { module = "io.prometheus:prometheus-
 prometheus-metrics-exporter-httpserver   = { module = "io.prometheus:prometheus-metrics-exporter-httpserver",    version.ref = "prometheus" }
 
 junit-bom                = { module = "org.junit:junit-bom",                           version.ref = "junit" }
-junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter",                version.ref = "junit" }
-junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher",     version.ref = "junit" }
+junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
 
 assertj-core             = { module = "org.assertj:assertj-core",                      version.ref = "assertj" }
 
 testcontainers-bom           = { module = "org.testcontainers:testcontainers-bom",  version.ref = "testcontainers" }
-testcontainers-core          = { module = "org.testcontainers:testcontainers",       version.ref = "testcontainers" }
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter",        version.ref = "testcontainers" }
+testcontainers-core          = { module = "org.testcontainers:testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
 
 awaitility   = { module = "org.awaitility:awaitility",   version.ref = "awaitility" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple",      version.ref = "slf4j" }
