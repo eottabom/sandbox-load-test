@@ -12,6 +12,11 @@ import java.lang.reflect.Field;
 
 class SimulationAnnotationScanner {
 
+	/**
+	 * Scans the given simulation class for {@code @Protocol}, {@code @Scenario}, and {@code @Injection} fields.
+	 * <p>Note: instantiates the target class via its no-arg constructor to read field values.
+	 * If that constructor has side effects (e.g. network calls, file I/O), callers must be aware.
+	 */
 	SimulationDescriptor scan(Class<?> clazz) throws ReflectiveOperationException {
 		Object instance = clazz.getDeclaredConstructor().newInstance();
 
@@ -66,7 +71,8 @@ class SimulationAnnotationScanner {
 		try {
 			Field nameField = scenario.wrapped.getClass().getDeclaredField("name");
 			nameField.setAccessible(true);
-			return (String) nameField.get(scenario.wrapped);
+			Object value = nameField.get(scenario.wrapped);
+			return value instanceof String s ? s : null;
 		} catch (ReflectiveOperationException e) {
 			return null;
 		}

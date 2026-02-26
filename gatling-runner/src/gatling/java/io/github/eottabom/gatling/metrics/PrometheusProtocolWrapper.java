@@ -18,7 +18,7 @@ public class PrometheusProtocolWrapper {
 			}
 
 			int statusCode = response.status().code();
-			long responseTime = response.endTimestamp() - response.startTimestamp();
+			long responseTime = Math.max(0, response.endTimestamp() - response.startTimestamp());
 			boolean success = statusCode >= 200 && statusCode < 400;
 
 			metrics.recordRequest(simulationName, scenarioName, requestName, success, responseTime);

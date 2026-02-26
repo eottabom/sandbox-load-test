@@ -38,7 +38,10 @@ public class DynamicPrometheusSimulation extends PrometheusSimulation {
 			).protocols(wrappedProtocol);
 
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException("Failed to load scenario class: " + targetClassName, e);
+			throw new RuntimeException(
+					"Failed to load/scan target simulation class '" + targetClassName + "'. "
+							+ "Ensure the class is on the classpath and annotated with "
+							+ "@Protocol, @Scenario, @Injection.", e);
 		}
 	}
 

@@ -7,11 +7,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class PrometheusServerManager {
 
 	private static final Logger log = LoggerFactory.getLogger(PrometheusServerManager.class);
-	private static volatile boolean shutdownHookRegistered = false;
+	private static final AtomicBoolean shutdownHookRegistered = new AtomicBoolean(false);
 
 	private final Object lock = new Object();
 	private final PrometheusRegistry registry;
@@ -35,8 +36,8 @@ class PrometheusServerManager {
 						.registry(registry)
 						.buildAndStart();
 			} catch (BindException e) {
-				throw new IOException("Port " + port + " is occupied. "
-						+ "Stop the process using that port or configure a different port.", e);
+				throw new IOException(
+						"Port " + port + " is already in use; cannot start Prometheus HTTP server.", e);
 			}
 			currentPort = port;
 			log.info("Prometheus metrics server started - http://localhost:{}/metrics", currentPort);
@@ -60,8 +61,7 @@ class PrometheusServerManager {
 	}
 
 	void registerShutdownHook() {
-		if (!shutdownHookRegistered) {
-			shutdownHookRegistered = true;
+		if (shutdownHookRegistered.compareAndSet(false, true)) {
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 				log.info("Shutdown hook triggered - stopping Prometheus server...");
 				stopServer();
