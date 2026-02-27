@@ -1,11 +1,16 @@
 [versions]
 spring-boot           = "4.0.1"
 dependency-management = "1.1.7"
+gatling-runner        = "0.0.1-SNAPSHOT"
 
 [libraries]
-spring-boot-starter-web  = { module = "org.springframework.boot:spring-boot-starter-web",  version.ref = "spring-boot" }
-spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
-junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
+gatling-runner                 = { module = "io.github.eottabom:gatling-runner",               version.ref = "gatling-runner" }
+spring-boot-starter-web        = { module = "org.springframework.boot:spring-boot-starter-web",        version.ref = "spring-boot" }
+spring-boot-starter-data-jdbc  = { module = "org.springframework.boot:spring-boot-starter-data-jdbc",  version.ref = "spring-boot" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
+spring-boot-starter-test       = { module = "org.springframework.boot:spring-boot-starter-test",       version.ref = "spring-boot" }
+junit-platform-launcher        = { module = "org.junit.platform:junit-platform-launcher" }
+h2                             = { module = "com.h2database:h2" }
 
 [plugins]
 spring-boot                = { id = "org.springframework.boot",        version.ref = "spring-boot" }
