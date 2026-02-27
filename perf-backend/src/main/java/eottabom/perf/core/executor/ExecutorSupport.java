@@ -37,12 +37,12 @@ final class ExecutorSupport {
 					.forEach(p -> {
 						try {
 							Files.delete(p);
-						} catch (IOException e) {
-							logger.debug("Failed to delete {}: {}", p, e.getMessage());
+						} catch (IOException ex) {
+							logger.debug("Failed to delete {}: {}", p, ex.getMessage());
 						}
 					});
-		} catch (IOException e) {
-			logger.debug("Failed to walk {}: {}", path, e.getMessage());
+		} catch (IOException ex) {
+			logger.debug("Failed to walk {}: {}", path, ex.getMessage());
 		}
 	}
 }

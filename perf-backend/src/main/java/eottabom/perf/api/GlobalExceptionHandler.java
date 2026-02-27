@@ -14,26 +14,26 @@ import java.util.stream.Stream;
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(NoSuchElementException.class)
-	public ProblemDetail handleNotFound(NoSuchElementException e) {
-		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+	public ProblemDetail handleNotFound(NoSuchElementException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
-	public ProblemDetail handleBadRequest(IllegalArgumentException e) {
-		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+	public ProblemDetail handleBadRequest(IllegalArgumentException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
 	}
 
 	@ExceptionHandler(IllegalStateException.class)
-	public ProblemDetail handleConflict(IllegalStateException e) {
-		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+	public ProblemDetail handleConflict(IllegalStateException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ProblemDetail handleValidation(MethodArgumentNotValidException e) {
+	public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
 		var message = Stream.concat(
-				e.getBindingResult().getFieldErrors().stream()
+				ex.getBindingResult().getFieldErrors().stream()
 						.map(fe -> fe.getField() + ": " + fe.getDefaultMessage()),
-				e.getBindingResult().getGlobalErrors().stream()
+				ex.getBindingResult().getGlobalErrors().stream()
 						.map(ge -> ge.getObjectName() + ": " + ge.getDefaultMessage())
 		).collect(Collectors.joining(", "));
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
