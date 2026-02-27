@@ -16,7 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-
 abstract class AbstractProcessExecutor implements TestExecutor {
 
 	private static final Logger logger = LoggerFactory.getLogger(AbstractProcessExecutor.class);
@@ -41,6 +40,7 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 	public void execute(Scenario scenario, Run run) {
 		IO_EXECUTOR.submit(() -> {
 			var workDir = (Path) null;
+			var process = (Process) null;
 			try {
 				workDir = Files.createTempDirectory("perf-" + run.id() + "-");
 
@@ -51,7 +51,7 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 
 				ExecutorSupport.updateStatus(runRepository, run, RunStatus.RUNNING);
 
-				var process = buildProcess(scenario, run, workDir)
+				process = buildProcess(scenario, run, workDir)
 						.redirectErrorStream(true)
 						.start();
 				processes.put(run.id(), process);
@@ -101,6 +101,10 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
 				}
 			} finally {
+				// 타임아웃/예외 경로에서 processes 엔트리 누수 방지 (정상 경로는 CAS로 이미 제거됨)
+				if (process != null) {
+					processes.remove(run.id(), process);
+				}
 				ExecutorSupport.deleteQuietly(workDir);
 			}
 		});
