@@ -3,6 +3,8 @@ package eottabom.perf.core.executor;
 import eottabom.perf.domain.Run;
 import eottabom.perf.domain.RunStatus;
 import eottabom.perf.infrastructure.RunRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 
 final class ExecutorSupport {
+
+	private static final Logger logger = LoggerFactory.getLogger(ExecutorSupport.class);
 
 	private ExecutorSupport() {
 	}
@@ -21,7 +25,9 @@ final class ExecutorSupport {
 	}
 
 	static void updateStatusToStopped(RunRepository runRepository, String runId) {
-		runRepository.findById(runId).ifPresent(run -> updateStatus(runRepository, run, RunStatus.STOPPED));
+		runRepository.findById(runId)
+				.filter(run -> !run.status().isTerminal())
+				.ifPresent(run -> updateStatus(runRepository, run, RunStatus.STOPPED));
 	}
 
 	static void deleteQuietly(Path path) {
@@ -31,10 +37,12 @@ final class ExecutorSupport {
 					.forEach(p -> {
 						try {
 							Files.delete(p);
-						} catch (IOException ignored) {
+						} catch (IOException e) {
+							logger.debug("Failed to delete {}: {}", p, e.getMessage());
 						}
 					});
-		} catch (IOException ignored) {
+		} catch (IOException e) {
+			logger.debug("Failed to walk {}: {}", path, e.getMessage());
 		}
 	}
 }

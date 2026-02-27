@@ -80,10 +80,14 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 				}
 			} catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
-				ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+				if (!cancelledRuns.contains(run.id())) {
+					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+				}
 			} catch (Exception ex) {
 				logger.error("{} run={} failed: {}", engine(), run.id(), ex.getMessage(), ex);
-				ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+				if (!cancelledRuns.contains(run.id())) {
+					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+				}
 			} finally {
 				ExecutorSupport.deleteQuietly(workDir);
 			}

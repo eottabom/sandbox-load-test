@@ -30,8 +30,9 @@ public class RunController {
 	@GetMapping
 	public List<RunResponse> list(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+			@RequestParam(required = false) String afterId,
 			@RequestParam(defaultValue = "50") int size) {
-		return runService.findAll(after, Math.clamp(size, 1, 200));
+		return runService.findAll(after, afterId, Math.clamp(size, 1, 200));
 	}
 
 	@GetMapping("/{id}")

@@ -57,10 +57,10 @@ public class RunService {
 		return RunResponse.from(run, scenario);
 	}
 
-	public List<RunResponse> findAll(LocalDateTime after, int size) {
+	public List<RunResponse> findAll(LocalDateTime after, String afterId, int size) {
 		var runs = after == null
 				? runRepository.findFirst(size)
-				: runRepository.findAfter(after, size);
+				: runRepository.findAfter(after, afterId, size);
 
 		// N+1 쿼리 방지: 시나리오를 한 번에 배치 조회
 		var scenarioIds = runs.stream().map(Run::scenarioId).collect(Collectors.toSet());

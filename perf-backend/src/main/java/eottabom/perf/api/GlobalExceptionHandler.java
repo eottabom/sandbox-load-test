@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,9 +30,12 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ProblemDetail handleValidation(MethodArgumentNotValidException e) {
-		var message = e.getBindingResult().getFieldErrors().stream()
-				.map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-				.collect(Collectors.joining(", "));
+		var message = Stream.concat(
+				e.getBindingResult().getFieldErrors().stream()
+						.map(fe -> fe.getField() + ": " + fe.getDefaultMessage()),
+				e.getBindingResult().getGlobalErrors().stream()
+						.map(ge -> ge.getObjectName() + ": " + ge.getDefaultMessage())
+		).collect(Collectors.joining(", "));
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
 				message.isEmpty() ? "Validation failed" : message);
 	}

@@ -12,9 +12,9 @@ public interface RunRepository extends ListCrudRepository<Run, String> {
 
 	boolean existsByScenarioId(String scenarioId);
 
-	@Query("SELECT * FROM runs ORDER BY started_at DESC LIMIT :size")
+	@Query("SELECT * FROM runs ORDER BY started_at DESC, id DESC LIMIT :size")
 	List<Run> findFirst(@Param("size") int size);
 
-	@Query("SELECT * FROM runs WHERE started_at < :after ORDER BY started_at DESC LIMIT :size")
-	List<Run> findAfter(@Param("after") LocalDateTime after, @Param("size") int size);
+	@Query("SELECT * FROM runs WHERE started_at < :after OR (started_at = :after AND id < :afterId) ORDER BY started_at DESC, id DESC LIMIT :size")
+	List<Run> findAfter(@Param("after") LocalDateTime after, @Param("afterId") String afterId, @Param("size") int size);
 }

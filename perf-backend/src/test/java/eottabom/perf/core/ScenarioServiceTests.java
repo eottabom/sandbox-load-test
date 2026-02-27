@@ -45,7 +45,7 @@ class ScenarioServiceTests {
 		));
 
 		// when
-		var result = scenarioService.findAll(null, 50);
+		var result = scenarioService.findAll(null, null, 50);
 
 		// then
 		assertThat(result).hasSize(2)
@@ -57,12 +57,12 @@ class ScenarioServiceTests {
 	void findAllReturnsRecordsOlderThanAfter() {
 		// given
 		var cursor = TestFixtures.FIXED_TIME;
-		given(scenarioRepository.findAfter(any(), anyInt())).willReturn(List.of(
+		given(scenarioRepository.findAfter(any(), any(), anyInt())).willReturn(List.of(
 				TestFixtures.scenario("id-3", "Stress Test", Engine.K6)
 		));
 
 		// when
-		var result = scenarioService.findAll(cursor, 50);
+		var result = scenarioService.findAll(cursor, "id-2", 50);
 
 		// then
 		assertThat(result).hasSize(1)

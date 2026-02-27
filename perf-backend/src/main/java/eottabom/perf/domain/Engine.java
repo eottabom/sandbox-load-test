@@ -15,6 +15,9 @@ public enum Engine {
 
 	@JsonCreator
 	public static Engine fromJson(String value) {
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("Engine value cannot be null or blank");
+		}
 		return valueOf(value.toUpperCase(Locale.ROOT));
 	}
 }

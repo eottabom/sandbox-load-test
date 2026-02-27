@@ -82,7 +82,7 @@ class RunServiceTests {
 		given(scenarioService.findAllById(any())).willReturn(List.of(scenario));
 
 		// when
-		var result = runService.findAll(null, 50);
+		var result = runService.findAll(null, null, 50);
 
 		// then
 		assertThat(result).hasSize(1);
@@ -94,11 +94,11 @@ class RunServiceTests {
 	void findAllReturnsRecordsOlderThanAfter() {
 		// given
 		var scenario = TestFixtures.k6Scenario();
-		given(runRepository.findAfter(any(), anyInt())).willReturn(List.of(TestFixtures.completedRun()));
+		given(runRepository.findAfter(any(), any(), anyInt())).willReturn(List.of(TestFixtures.completedRun()));
 		given(scenarioService.findAllById(any())).willReturn(List.of(scenario));
 
 		// when
-		var result = runService.findAll(TestFixtures.FIXED_TIME, 50);
+		var result = runService.findAll(TestFixtures.FIXED_TIME, "r-1", 50);
 
 		// then
 		assertThat(result).hasSize(1);
@@ -191,7 +191,8 @@ class RunServiceTests {
 
 		// when & then
 		assertThatThrownBy(() -> runService.stop("r-1"))
-				.isInstanceOf(IllegalStateException.class);
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining(RunStatus.FAILED.toJson());
 		verify(k6Executor, never()).stop(any());
 	}
 

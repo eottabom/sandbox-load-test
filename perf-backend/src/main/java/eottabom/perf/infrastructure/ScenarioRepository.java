@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface ScenarioRepository extends ListCrudRepository<Scenario, String> {
 
-	@Query("SELECT * FROM scenarios ORDER BY created_at DESC LIMIT :size")
+	@Query("SELECT * FROM scenarios ORDER BY created_at DESC, id DESC LIMIT :size")
 	List<Scenario> findFirst(@Param("size") int size);
 
-	@Query("SELECT * FROM scenarios WHERE created_at < :after ORDER BY created_at DESC LIMIT :size")
-	List<Scenario> findAfter(@Param("after") LocalDateTime after, @Param("size") int size);
+	@Query("SELECT * FROM scenarios WHERE created_at < :after OR (created_at = :after AND id < :afterId) ORDER BY created_at DESC, id DESC LIMIT :size")
+	List<Scenario> findAfter(@Param("after") LocalDateTime after, @Param("afterId") String afterId, @Param("size") int size);
 }

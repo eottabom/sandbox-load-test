@@ -25,10 +25,10 @@ public class ScenarioService {
 		this.runRepository = runRepository;
 	}
 
-	public List<Scenario> findAll(LocalDateTime after, int size) {
+	public List<Scenario> findAll(LocalDateTime after, String afterId, int size) {
 		return after == null
 				? scenarioRepository.findFirst(size)
-				: scenarioRepository.findAfter(after, size);
+				: scenarioRepository.findAfter(after, afterId, size);
 	}
 
 	public List<Scenario> findAllById(Collection<String> ids) {

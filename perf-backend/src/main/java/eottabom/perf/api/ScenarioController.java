@@ -26,8 +26,9 @@ public class ScenarioController {
 	@GetMapping
 	public List<ScenarioResponse> list(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+			@RequestParam(required = false) String afterId,
 			@RequestParam(defaultValue = "50") int size) {
-		return scenarioService.findAll(after, Math.clamp(size, 1, 200)).stream()
+		return scenarioService.findAll(after, afterId, Math.clamp(size, 1, 200)).stream()
 				.map(ScenarioResponse::from)
 				.toList();
 	}

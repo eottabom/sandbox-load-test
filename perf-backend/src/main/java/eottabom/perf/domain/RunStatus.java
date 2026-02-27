@@ -19,6 +19,9 @@ public enum RunStatus {
 
 	@JsonCreator
 	public static RunStatus fromJson(String value) {
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("RunStatus value cannot be null or blank");
+		}
 		return valueOf(value.toUpperCase(Locale.ROOT));
 	}
 }
