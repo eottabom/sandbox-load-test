@@ -5,6 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "gatling-runner/**"
+      - "!gatling-runner/.gitignore"
+      - "!gatling-runner/README.md"
+      - "!gatling-runner/src/test/**"
   workflow_dispatch:
 
 permissions:
