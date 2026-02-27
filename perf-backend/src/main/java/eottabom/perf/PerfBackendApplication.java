@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class PerfBackendApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(PerfBackendApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(PerfBackendApplication.class, args);
+	}
 }

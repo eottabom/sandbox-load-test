@@ -15,12 +15,26 @@ java {
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/eottabom/sandbox-load-test")
+        content {
+            includeGroup("io.github.eottabom")
+        }
+        credentials {
+            username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 dependencies {
+    implementation libs.gatling.runner
     implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.data.jdbc
+    implementation libs.spring.boot.starter.validation
+    runtimeOnly    libs.h2
     testImplementation libs.spring.boot.starter.test
-    testRuntimeOnly libs.junit.platform.launcher
+    testRuntimeOnly    libs.junit.platform.launcher
 }
 
 tasks.named('test') {
