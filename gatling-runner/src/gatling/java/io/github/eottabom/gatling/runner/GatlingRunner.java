@@ -5,6 +5,7 @@ import io.github.eottabom.gatling.annotation.LoadTest;
 import io.github.eottabom.gatling.core.DynamicPrometheusSimulation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -22,25 +23,43 @@ public class GatlingRunner {
 
 	private static final String DEFAULT_PACKAGE = "io.github.eottabom.gatling.simulations";
 
-	public static void main(String[] args) {
-		Runtime.getRuntime().addShutdownHook(new Thread(() ->
-				log.info("Shutdown hook triggered - cleaning up...")
-		));
-
+	static void main(String[] args) throws Exception {
 		if (args.length < 1) {
 			printUsage();
-			System.exit(1);
+			throw new IllegalArgumentException("Scenario class or source file is required");
 		}
+		run(args[0]);
+	}
 
-		try {
-			run(args[0]);
-		} catch (Exception e) {
-			log.error("Error: {}, {}", e.getMessage(), e.getStackTrace());
-			System.exit(1);
-		}
+	/**
+	 * System.exit()를 호출하지 않고 Gatling 시뮬레이션을 실행한다.
+	 *
+	 * @return Gatling 종료 코드 (0: 성공)
+	 */
+	public static int runWithoutExit(String classNameInput) throws Exception {
+		setupTargetClass(classNameInput);
+
+		// Gatling$.MODULE$.fromArgs(args) → int, System.exit() 없음
+		Class<?> gatlingCompanion = Class.forName("io.gatling.app.Gatling$");
+		Object module = gatlingCompanion.getField("MODULE$").get(null);
+		Method fromArgs = gatlingCompanion.getMethod("fromArgs", String[].class);
+		return (int) fromArgs.invoke(module, (Object) new String[]{
+				"--simulation", DynamicPrometheusSimulation.class.getName(),
+				"--results-folder", "results"
+		});
 	}
 
 	public static void run(String classNameInput) throws Exception {
+		setupTargetClass(classNameInput);
+
+		// Gatling 실행 → Gatling이 DynamicPrometheusSimulation 로드
+		Gatling.main(new String[]{
+				"--simulation", DynamicPrometheusSimulation.class.getName(),
+				"--results-folder", "results"
+		});
+	}
+
+	private static void setupTargetClass(String classNameInput) throws Exception {
 		Class<?> clazz;
 		ClassLoader customClassLoader = null;
 
@@ -53,7 +72,6 @@ public class GatlingRunner {
 			clazz = RuntimeCompiler.compile(sourceFile);
 			customClassLoader = clazz.getClassLoader();
 		} else {
-			// 기존 로직: 클래스패스에서 로드
 			String className = classNameInput.contains(".")
 					? classNameInput
 					: DEFAULT_PACKAGE + "." + classNameInput;
@@ -75,12 +93,6 @@ public class GatlingRunner {
 		} else {
 			DynamicPrometheusSimulation.setTargetClass(className);
 		}
-
-		// Gatling 실행 → Gatling이 DynamicPrometheusSimulation 로드
-		Gatling.main(new String[]{
-				"--simulation", DynamicPrometheusSimulation.class.getName(),
-				"--results-folder", "results"
-		});
 	}
 
 	private static void printUsage() {
