@@ -75,7 +75,7 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 				// stop()이 먼저 제거한 경우 상태 업데이트 중복 방지
 				if (processes.remove(run.id(), process)) {
 					// processes.remove 성공 후 stop()이 끼어들어 STOPPED를 설정했을 경우 덮어쓰지 않음
-					if (cancelledRuns.contains(run.id())) {
+					if (cancelledRuns.remove(run.id())) {
 						return;
 					}
 					var result = exitCode == 0 ? RunStatus.COMPLETED : RunStatus.FAILED;
@@ -84,12 +84,12 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 				}
 			} catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
-				if (!cancelledRuns.contains(run.id())) {
+				if (!cancelledRuns.remove(run.id())) {
 					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
 				}
 			} catch (Exception ex) {
 				logger.error("{} run={} failed: {}", engine(), run.id(), ex.getMessage(), ex);
-				if (!cancelledRuns.contains(run.id())) {
+				if (!cancelledRuns.remove(run.id())) {
 					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
 				}
 			} finally {
