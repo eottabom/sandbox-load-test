@@ -21,8 +21,7 @@ java {
     }
 }
 
-// Gatling 플러그인이 test 출력물을 gatling classpath에 포함하는 것을 끄면
-// compileGatlingJava → testClasses 의존을 피할 수 있다.
+// Gatling 플러그인이 test 출력물을 gatling classpath에 포함하는 것을 꺼서 compileGatlingJava → testClasses 의존을 피할 수 있다.
 gatling {
     includeTestOutput = false
 }
