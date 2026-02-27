@@ -1,0 +1,47 @@
+name: 📚 Publish Wiki
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "wiki-publish"
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: ${{ !contains(toJson(github.event.commits), '[skip ci]') && !contains(toJson(github.event.commits), '[ci skip]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish wiki
+        run: |
+          set -euo pipefail
+
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          WIKI_REPO="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+          WIKI_DIR=$(mktemp -d)
+
+          git clone "$WIKI_REPO" "$WIKI_DIR"
+          cp wiki/*.md "$WIKI_DIR/"
+
+          cd "$WIKI_DIR"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No wiki changes."
+            exit 0
+          fi
+
+          git commit -m "docs: sync wiki from main (${{ github.sha }})"
+          git push
