@@ -1,0 +1,135 @@
+name: 🚀 Publish gatling-runner to GitHub Packages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "gatling-runner/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: "gatling-runner-publish"
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: ${{ !contains(toJson(github.event.commits), '[skip ci]') && !contains(toJson(github.event.commits), '[ci skip]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Read version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION_LINE=$(grep -E '^version=' gatling-runner/version.properties | tail -n 1)
+          VERSION="${VERSION_LINE#version=}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build & Publish
+        working-directory: gatling-runner
+        run: ./gradlew shadowJar publish
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  version:
+    needs: publish
+    if: ${{ !contains(toJson(github.event.commits), '[skip ci]') && !contains(toJson(github.event.commits), '[ci skip]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION_LINE=$(grep -E '^version=' gatling-runner/version.properties | tail -n 1)
+          VERSION="${VERSION_LINE#version=}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version.properties & tag
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          CURRENT="${{ steps.ver.outputs.version }}"
+          NOW="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+          update_header() {
+            if head -n 1 gatling-runner/version.properties | grep -q '^# updated='; then
+              sed -i "1s|^# updated=.*$|# updated=${NOW}|" gatling-runner/version.properties
+            else
+              { echo "# updated=${NOW}"; cat gatling-runner/version.properties; } > gatling-runner/version.properties.tmp
+              mv gatling-runner/version.properties.tmp gatling-runner/version.properties
+            fi
+          }
+
+          set_version() {
+            sed -i "s/^version=.*/version=$1/" gatling-runner/version.properties
+          }
+
+          if [ "${{ steps.ver.outputs.is_snapshot }}" = "true" ]; then
+            # SNAPSHOT: 타임스탬프만 갱신, 태그 없음
+            update_header
+            git add gatling-runner/version.properties
+            git commit -m "[skip ci] sync gatling-runner snapshot ${CURRENT}"
+            git push
+          else
+            # Release: 태그 생성 → 다음 SNAPSHOT으로 bump
+            git fetch --tags
+
+            TAG="gatling-runner-v${CURRENT}"
+            git tag "${TAG}"
+            git push origin "${TAG}"
+
+            # Keep only the latest 5 gatling-runner-v* tags
+            TAGS_TO_DELETE=$(git tag -l "gatling-runner-v*" --sort=-v:refname | tail -n +6)
+            if [ -n "$TAGS_TO_DELETE" ]; then
+              echo "$TAGS_TO_DELETE" | xargs -I {} git tag -d {}
+              echo "$TAGS_TO_DELETE" | xargs -I {} git push origin :refs/tags/{}
+            fi
+
+            # Bump patch → next SNAPSHOT (e.g. 0.0.1 → 0.0.2-SNAPSHOT)
+            BASE="${CURRENT%%-*}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+            PATCH=$((PATCH + 1))
+            NEXT="${MAJOR}.${MINOR}.${PATCH}-SNAPSHOT"
+
+            update_header
+            set_version "$NEXT"
+            git add gatling-runner/version.properties
+            git commit -m "[skip ci] bump gatling-runner to ${NEXT}"
+            git push
+          fi

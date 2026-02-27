@@ -1,8 +1,15 @@
 plugins {
     id 'java'
+    id 'maven-publish'
     alias(libs.plugins.gatling)
     alias(libs.plugins.shadow)
 }
+
+def versionProps = new Properties()
+file("version.properties").withInputStream { versionProps.load(it) }
+
+group   = 'io.github.eottabom'
+version = versionProps.getProperty('version')
 
 repositories {
     mavenCentral()
@@ -61,7 +68,6 @@ test {
 shadowJar {
     archiveBaseName.set('gatling-runner')
     archiveClassifier.set('')
-    archiveVersion.set('1.0.0')
 
     manifest {
         attributes 'Main-Class': 'io.github.eottabom.gatling.runner.GatlingRunner'
@@ -79,3 +85,24 @@ shadowJar {
 shadowJar.dependsOn(compileGatlingJava)
 
 build.dependsOn shadowJar
+
+publishing {
+    publications {
+        gatlingRunner(MavenPublication) {
+            artifactId = 'gatling-runner'
+            artifact(shadowJar) {
+                classifier = ''
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/eottabom/sandbox-load-test')
+            credentials {
+                username = project.findProperty('gpr.user') ?: System.getenv('GITHUB_ACTOR')
+                password = project.findProperty('gpr.key') ?: System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
+}
