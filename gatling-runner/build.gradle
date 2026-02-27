@@ -59,6 +59,13 @@ dependencies {
     testRuntimeOnly libs.slf4j.simple
 }
 
+// composite build(includeBuild)에서 gatling 소스셋 클래스를 찾을 수 있도록
+// 기본 jar에 gatling 소스셋 출력을 포함시킨다.
+jar {
+    from sourceSets.gatling.output
+}
+jar.dependsOn(compileGatlingJava)
+
 compileTestJava.dependsOn(compileGatlingJava)
 
 test {
