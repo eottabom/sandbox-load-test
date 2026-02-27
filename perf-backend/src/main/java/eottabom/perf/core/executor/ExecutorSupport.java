@@ -24,10 +24,15 @@ final class ExecutorSupport {
 		runRepository.save(new Run(run.id(), run.scenarioId(), newStatus, run.startedAt(), finishedAt));
 	}
 
-	static void updateStatusToStopped(RunRepository runRepository, String runId) {
-		runRepository.findById(runId)
+	static boolean updateStatusToStopped(RunRepository runRepository, String runId) {
+		var target = runRepository.findById(runId)
 				.filter(run -> !run.status().isTerminal())
-				.ifPresent(run -> updateStatus(runRepository, run, RunStatus.STOPPED));
+				.orElse(null);
+		if (target == null) {
+			return false;
+		}
+		updateStatus(runRepository, target, RunStatus.STOPPED);
+		return true;
 	}
 
 	static void deleteQuietly(Path path) {

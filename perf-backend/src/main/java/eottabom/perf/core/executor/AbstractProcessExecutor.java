@@ -16,17 +16,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+
 abstract class AbstractProcessExecutor implements TestExecutor {
 
 	private static final Logger logger = LoggerFactory.getLogger(AbstractProcessExecutor.class);
 	private static final long MAX_RUN_SECONDS = 60 * 60;
 
-	private static final ExecutorService IO_EXECUTOR =
-			Executors.newCachedThreadPool(r -> {
-				var t = new Thread(r);
-				t.setDaemon(true);
-				return t;
-			});
+	private static final ExecutorService IO_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
 	protected final RunRepository runRepository;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
@@ -117,7 +113,10 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 		if (process != null) {
 			process.destroyForcibly();
 		}
-		ExecutorSupport.updateStatusToStopped(runRepository, runId);
+		// 업데이트 대상이 없으면(없는 run이거나 이미 terminal) 토큰 즉시 회수
+		if (!ExecutorSupport.updateStatusToStopped(runRepository, runId)) {
+			cancelledRuns.remove(runId);
+		}
 		logger.info("{} run={} stopped", engine(), runId);
 	}
 }
