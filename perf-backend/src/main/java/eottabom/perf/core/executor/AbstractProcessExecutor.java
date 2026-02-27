@@ -14,10 +14,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 abstract class AbstractProcessExecutor implements TestExecutor {
 
 	private static final Logger logger = LoggerFactory.getLogger(AbstractProcessExecutor.class);
+	private static final long MAX_RUN_SECONDS = 60 * 60;
 
 	private static final ExecutorService IO_EXECUTOR =
 			Executors.newCachedThreadPool(r -> {
@@ -70,7 +72,17 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 				// TODO: LogStore에 연결해 SSE로 실시간 스트리밍
 				process.getInputStream().transferTo(OutputStream.nullOutputStream());
 
-				var exitCode = process.waitFor();
+				var completed = process.waitFor(MAX_RUN_SECONDS, TimeUnit.SECONDS);
+				if (!completed) {
+					process.destroyForcibly();
+					if (!cancelledRuns.remove(run.id())) {
+						ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+						logger.warn("{} run={} timed out after {}s", engine(), run.id(), MAX_RUN_SECONDS);
+					}
+					return;
+				}
+
+				var exitCode = process.exitValue();
 
 				// stop()이 먼저 제거한 경우 상태 업데이트 중복 방지
 				if (processes.remove(run.id(), process)) {
