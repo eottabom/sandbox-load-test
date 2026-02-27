@@ -20,6 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -36,20 +37,37 @@ class ScenarioServiceTests {
 	private ScenarioService scenarioService;
 
 	@Test
-	void findAllReturnsAllScenarios() {
+	void findAllReturnsLatestWhenAfterIsNull() {
 		// given
-		given(scenarioRepository.findAll()).willReturn(List.of(
+		given(scenarioRepository.findFirst(anyInt())).willReturn(List.of(
 				TestFixtures.scenario("id-1", "Smoke Test", Engine.K6),
 				TestFixtures.scenario("id-2", "Load Test", Engine.GATLING)
 		));
 
 		// when
-		var result = scenarioService.findAll();
+		var result = scenarioService.findAll(null, 50);
 
 		// then
 		assertThat(result).hasSize(2)
 				.extracting(Scenario::name)
 				.containsExactly("Smoke Test", "Load Test");
+	}
+
+	@Test
+	void findAllReturnsRecordsOlderThanAfter() {
+		// given
+		var cursor = TestFixtures.FIXED_TIME;
+		given(scenarioRepository.findAfter(any(), anyInt())).willReturn(List.of(
+				TestFixtures.scenario("id-3", "Stress Test", Engine.K6)
+		));
+
+		// when
+		var result = scenarioService.findAll(cursor, 50);
+
+		// then
+		assertThat(result).hasSize(1)
+				.extracting(Scenario::name)
+				.containsExactly("Stress Test");
 	}
 
 	@Test

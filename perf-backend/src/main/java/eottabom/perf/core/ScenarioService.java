@@ -8,6 +8,7 @@ import eottabom.perf.infrastructure.ScenarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -24,8 +25,14 @@ public class ScenarioService {
 		this.runRepository = runRepository;
 	}
 
-	public List<Scenario> findAll() {
-		return (List<Scenario>) scenarioRepository.findAll();
+	public List<Scenario> findAll(LocalDateTime after, int size) {
+		return after == null
+				? scenarioRepository.findFirst(size)
+				: scenarioRepository.findAfter(after, size);
+	}
+
+	public List<Scenario> findAllById(Collection<String> ids) {
+		return scenarioRepository.findAllById(ids);
 	}
 
 	public Scenario findById(String id) {

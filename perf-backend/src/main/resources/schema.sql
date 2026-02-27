@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS runs (
         FOREIGN KEY (scenario_id) REFERENCES scenarios(id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_scenarios_created_at ON scenarios(created_at);
+
 CREATE INDEX IF NOT EXISTS idx_runs_scenario_id ON runs(scenario_id);
-CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status);
-CREATE INDEX IF NOT EXISTS idx_runs_started_at ON runs(started_at);
+CREATE INDEX IF NOT EXISTS idx_runs_status      ON runs(status);
+CREATE INDEX IF NOT EXISTS idx_runs_started_at  ON runs(started_at);

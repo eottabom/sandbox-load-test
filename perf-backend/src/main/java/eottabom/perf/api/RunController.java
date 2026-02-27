@@ -4,9 +4,11 @@ import eottabom.perf.api.dto.RunResponse;
 import eottabom.perf.api.dto.StartRunRequest;
 import eottabom.perf.core.RunService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -26,8 +28,10 @@ public class RunController {
 	}
 
 	@GetMapping
-	public List<RunResponse> list() {
-		return runService.findAll();
+	public List<RunResponse> list(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+			@RequestParam(defaultValue = "50") int size) {
+		return runService.findAll(after, Math.clamp(size, 1, 200));
 	}
 
 	@GetMapping("/{id}")

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 public class TestFixtures {
 
-	private static final LocalDateTime FIXED_TIME = LocalDateTime.of(2024, 1, 1, 0, 0);
+	public static final LocalDateTime FIXED_TIME = LocalDateTime.of(2024, 1, 1, 0, 0);
 
 	public static Scenario k6Scenario() {
 		return new Scenario("s-1", "Load Test", Engine.K6, "script", "desc", FIXED_TIME, null);

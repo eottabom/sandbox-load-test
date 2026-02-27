@@ -25,6 +25,7 @@ public class K6Executor extends AbstractProcessExecutor {
 	protected ProcessBuilder buildProcess(Scenario scenario, Run run, Path workDir) throws Exception {
 		var script = workDir.resolve("script.js");
 		Files.writeString(script, scenario.content());
-		return new ProcessBuilder("k6", "run", script.toString());
+		return new ProcessBuilder("k6", "run", script.toString())
+				.directory(workDir.toFile());
 	}
 }

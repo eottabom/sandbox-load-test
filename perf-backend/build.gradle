@@ -17,6 +17,9 @@ repositories {
     mavenCentral()
     maven {
         url = uri("https://maven.pkg.github.com/eottabom/sandbox-load-test")
+        content {
+            includeGroup("io.github.eottabom")
+        }
         credentials {
             username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
             password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")

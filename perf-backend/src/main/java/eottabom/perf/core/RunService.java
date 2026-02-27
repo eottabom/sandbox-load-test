@@ -37,6 +37,12 @@ public class RunService {
 	public RunResponse start(StartRunRequest request) {
 		var scenario = scenarioService.findById(request.scenarioId());
 
+		// executor 검증을 저장 전에 수행해 orphaned Run 방지
+		var executor = executors.get(scenario.engine());
+		if (executor == null) {
+			throw new IllegalArgumentException("Unsupported engine: " + scenario.engine());
+		}
+
 		var run = new Run(
 				UUID.randomUUID().toString(),
 				scenario.id(),
@@ -46,25 +52,30 @@ public class RunService {
 		);
 		run = runRepository.save(run);
 
-		var executor = executors.get(scenario.engine());
-		if (executor == null) {
-			throw new IllegalArgumentException("Unsupported engine: " + scenario.engine());
-		}
 		executor.execute(scenario, run);
 
 		return RunResponse.from(run, scenario);
 	}
 
-	public List<RunResponse> findAll() {
-		return ((List<Run>) runRepository.findAll()).stream()
-				.map(run -> RunResponse.from(run, getScenarioForRun(run)))
+	public List<RunResponse> findAll(LocalDateTime after, int size) {
+		var runs = after == null
+				? runRepository.findFirst(size)
+				: runRepository.findAfter(after, size);
+
+		// N+1 쿼리 방지: 시나리오를 한 번에 배치 조회
+		var scenarioIds = runs.stream().map(Run::scenarioId).collect(Collectors.toSet());
+		var scenarioMap = scenarioService.findAllById(scenarioIds).stream()
+				.collect(Collectors.toMap(Scenario::id, Function.identity()));
+
+		return runs.stream()
+				.map(run -> RunResponse.from(run, scenarioMap.get(run.scenarioId())))
 				.toList();
 	}
 
 	public RunResponse findById(String id) {
 		var run = runRepository.findById(id)
 				.orElseThrow(() -> new NoSuchElementException("Run not found: " + id));
-		return RunResponse.from(run, getScenarioForRun(run));
+		return RunResponse.from(run, scenarioService.findById(run.scenarioId()));
 	}
 
 	public void stop(String id) {
@@ -72,24 +83,16 @@ public class RunService {
 				.orElseThrow(() -> new NoSuchElementException("Run not found: " + id));
 
 		if (run.status() != RunStatus.RUNNING && run.status() != RunStatus.PENDING) {
-			throw new IllegalStateException("Run is not stoppable: " + run.status());
+			throw new IllegalStateException("Run is not stoppable: " + run.status().toJson());
 		}
 
-		var executor = executors.get(getScenarioForRun(run).engine());
+		var scenario = scenarioService.findById(run.scenarioId());
+		var executor = executors.get(scenario.engine());
 		if (executor == null) {
 			throw new IllegalArgumentException("Unsupported engine for run: " + id);
 		}
+
+		// 상태 업데이트는 executor.stop() 내부에서 처리
 		executor.stop(id);
-
-		var stopped = new Run(run.id(), run.scenarioId(), RunStatus.STOPPED, run.startedAt(), LocalDateTime.now());
-		runRepository.save(stopped);
-	}
-
-	private Scenario getScenarioForRun(Run run) {
-		try {
-			return scenarioService.findById(run.scenarioId());
-		} catch (NoSuchElementException ex) {
-			throw new NoSuchElementException("Scenario not found for run: " + run.id());
-		}
 	}
 }

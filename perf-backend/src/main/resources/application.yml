@@ -2,6 +2,10 @@ spring:
   application:
     name: perf-backend
 
+  mvc:
+    problemdetails:
+      enabled: true
+
   datasource:
     url: jdbc:h2:file:./data/perf
     driver-class-name: org.h2.Driver
@@ -12,7 +16,7 @@ spring:
 
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
 server:

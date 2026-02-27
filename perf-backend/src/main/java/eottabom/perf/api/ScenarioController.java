@@ -6,9 +6,11 @@ import eottabom.perf.api.dto.ScenarioResponse;
 import eottabom.perf.api.dto.UpdateScenarioRequest;
 import eottabom.perf.core.ScenarioService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,8 +24,10 @@ public class ScenarioController {
 	}
 
 	@GetMapping
-	public List<ScenarioResponse> list() {
-		return scenarioService.findAll().stream()
+	public List<ScenarioResponse> list(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+			@RequestParam(defaultValue = "50") int size) {
+		return scenarioService.findAll(after, Math.clamp(size, 1, 200)).stream()
 				.map(ScenarioResponse::from)
 				.toList();
 	}
@@ -41,7 +45,7 @@ public class ScenarioController {
 
 	@PutMapping("/{id}")
 	public ScenarioDetailResponse update(@PathVariable String id,
-										 @RequestBody UpdateScenarioRequest request) {
+										 @Valid @RequestBody UpdateScenarioRequest request) {
 		return ScenarioDetailResponse.from(scenarioService.update(id, request));
 	}
 
