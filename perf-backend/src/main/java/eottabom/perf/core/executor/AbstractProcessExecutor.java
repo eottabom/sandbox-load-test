@@ -7,6 +7,7 @@ import eottabom.perf.infrastructure.RunRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,76 +39,92 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 
 	@Override
 	public void execute(Scenario scenario, Run run) {
+		IO_EXECUTOR.submit(() -> runInBackground(scenario, run));
+	}
+
+	private void runInBackground(Scenario scenario, Run run) {
+		Path workDir = null;
+		Process process = null;
+		try {
+			workDir = Files.createTempDirectory("perf-" + run.id() + "-");
+
+			// PENDING 상태에서 stop()이 먼저 호출된 경우
+			if (cancelledRuns.remove(run.id())) {
+				return;
+			}
+
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.RUNNING);
+
+			process = buildProcess(scenario, run, workDir).redirectErrorStream(true).start();
+			processes.put(run.id(), process);
+
+			// put 직후 stop()이 끼어든 경우 — destroyForcibly()는 이미 종료된 프로세스에도 안전
+			if (cancelledRuns.remove(run.id())) {
+				process.destroyForcibly();
+				ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
+				return;
+			}
+
+			// TODO: LogStore에 연결해 SSE로 실시간 스트리밍
+			drainOutputAsync(process);
+
+			var completed = process.waitFor(MAX_RUN_SECONDS, TimeUnit.SECONDS);
+			if (!completed) {
+				handleTimeout(run, process);
+				return;
+			}
+
+			// 완료 후 소유권 확인 — stop()이 먼저 map에서 제거한 경우 skip
+			var exitCode = process.exitValue();
+			var ownedByUs = processes.remove(run.id(), process);
+			if (!ownedByUs) {
+				return;
+			}
+
+			var cancelledAtFinish = cancelledRuns.remove(run.id());
+			if (!cancelledAtFinish) {
+				ExecutorSupport.updateStatus(runRepository, run, ExecutorSupport.toRunStatus(exitCode));
+				logger.info("{} run={} finished exitCode={}", engine(), run.id(), exitCode);
+			}
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			markFailedIfNotCancelled(run);
+		} catch (Exception ex) {
+			logger.error("{} run={} failed: {}", engine(), run.id(), ex.getMessage(), ex);
+			markFailedIfNotCancelled(run);
+		} finally {
+			if (process != null) {
+				processes.remove(run.id(), process);
+			}
+			cancelledRuns.remove(run.id());
+			ExecutorSupport.deleteQuietly(workDir);
+		}
+	}
+
+	private void drainOutputAsync(Process process) {
 		IO_EXECUTOR.submit(() -> {
-			var workDir = (Path) null;
-			var process = (Process) null;
 			try {
-				workDir = Files.createTempDirectory("perf-" + run.id() + "-");
-
-				// PENDING 상태에서 stop()이 먼저 호출된 경우 — stop()이 이미 STOPPED 업데이트
-				if (cancelledRuns.remove(run.id())) {
-					return;
-				}
-
-				ExecutorSupport.updateStatus(runRepository, run, RunStatus.RUNNING);
-
-				process = buildProcess(scenario, run, workDir)
-						.redirectErrorStream(true)
-						.start();
-				processes.put(run.id(), process);
-
-				// put 직후 재확인: stop()이 processes를 찾지 못하고 지나쳤을 경우
-				if (cancelledRuns.remove(run.id())) {
-					if (processes.remove(run.id(), process)) {
-						process.destroyForcibly();
-					}
-					ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
-					return;
-				}
-
-				// TODO: LogStore에 연결해 SSE로 실시간 스트리밍
 				process.getInputStream().transferTo(OutputStream.nullOutputStream());
-
-				var completed = process.waitFor(MAX_RUN_SECONDS, TimeUnit.SECONDS);
-				if (!completed) {
-					process.destroyForcibly();
-					if (!cancelledRuns.remove(run.id())) {
-						ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
-						logger.warn("{} run={} timed out after {}s", engine(), run.id(), MAX_RUN_SECONDS);
-					}
-					return;
-				}
-
-				var exitCode = process.exitValue();
-
-				// stop()이 먼저 제거한 경우 상태 업데이트 중복 방지
-				if (processes.remove(run.id(), process)) {
-					// processes.remove 성공 후 stop()이 끼어들어 STOPPED를 설정했을 경우 덮어쓰지 않음
-					if (cancelledRuns.remove(run.id())) {
-						return;
-					}
-					var result = exitCode == 0 ? RunStatus.COMPLETED : RunStatus.FAILED;
-					ExecutorSupport.updateStatus(runRepository, run, result);
-					logger.info("{} run={} finished exitCode={}", engine(), run.id(), exitCode);
-				}
-			} catch (InterruptedException ex) {
-				Thread.currentThread().interrupt();
-				if (!cancelledRuns.remove(run.id())) {
-					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
-				}
-			} catch (Exception ex) {
-				logger.error("{} run={} failed: {}", engine(), run.id(), ex.getMessage(), ex);
-				if (!cancelledRuns.remove(run.id())) {
-					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
-				}
-			} finally {
-				// 타임아웃/예외 경로에서 processes 엔트리 누수 방지 (정상 경로는 CAS로 이미 제거됨)
-				if (process != null) {
-					processes.remove(run.id(), process);
-				}
-				ExecutorSupport.deleteQuietly(workDir);
+			} catch (IOException ignored) {
+				// 프로세스 종료 시 스트림이 닫히면 자연스럽게 종료
 			}
 		});
+	}
+
+	private void markFailedIfNotCancelled(Run run) {
+		var wasCancelled = cancelledRuns.remove(run.id());
+		if (!wasCancelled) {
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+		}
+	}
+
+	private void handleTimeout(Run run, Process process) {
+		process.destroyForcibly();
+		var wasCancelled = cancelledRuns.remove(run.id());
+		if (!wasCancelled) {
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+			logger.warn("{} run={} timed out after {}s", engine(), run.id(), MAX_RUN_SECONDS);
+		}
 	}
 
 	@Override
@@ -117,8 +134,8 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 		if (process != null) {
 			process.destroyForcibly();
 		}
-		// 업데이트 대상이 없으면(없는 run이거나 이미 terminal) 토큰 즉시 회수
-		if (!ExecutorSupport.updateStatusToStopped(runRepository, runId)) {
+		var stopped = ExecutorSupport.updateStatusToStopped(runRepository, runId);
+		if (!stopped) {
 			cancelledRuns.remove(runId);
 		}
 		logger.info("{} run={} stopped", engine(), runId);
