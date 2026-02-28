@@ -24,6 +24,10 @@ final class ExecutorSupport {
 		runRepository.save(new Run(run.id(), run.scenarioId(), newStatus, run.startedAt(), finishedAt));
 	}
 
+	static RunStatus toRunStatus(int exitCode) {
+		return exitCode == 0 ? RunStatus.COMPLETED : RunStatus.FAILED;
+	}
+
 	static boolean updateStatusToStopped(RunRepository runRepository, String runId) {
 		var target = runRepository.findById(runId)
 				.filter(run -> !run.status().isTerminal())

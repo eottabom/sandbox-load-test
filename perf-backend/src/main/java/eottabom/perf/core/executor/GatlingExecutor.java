@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
@@ -25,6 +25,7 @@ public class GatlingExecutor implements TestExecutor {
 
 	private final RunRepository runRepository;
 	private final ConcurrentHashMap<String, Thread> threads = new ConcurrentHashMap<>();
+	private final Set<String> cancelledRuns = ConcurrentHashMap.newKeySet();
 
 	public GatlingExecutor(RunRepository runRepository) {
 		this.runRepository = runRepository;
@@ -37,58 +38,85 @@ public class GatlingExecutor implements TestExecutor {
 
 	@Override
 	public void execute(Scenario scenario, Run run) {
-		var thread = new Thread(() -> {
-			var workDir = (Path) null;
-			try {
-				workDir = Files.createTempDirectory("perf-" + run.id() + "-");
-				var className = extractClassName(scenario.content());
-				var sourceFile = workDir.resolve(className + ".java");
-				Files.writeString(sourceFile, scenario.content());
-
-				ExecutorSupport.updateStatus(runRepository, run, RunStatus.RUNNING);
-
-				var exitCode = GatlingRunner.runWithoutExit(sourceFile.toString());
-
-				if (threads.remove(run.id(), Thread.currentThread())) {
-					var result = exitCode == 0 ? RunStatus.COMPLETED : RunStatus.FAILED;
-					ExecutorSupport.updateStatus(runRepository, run, result);
-					logger.info("GATLING run={} finished exitCode={}", run.id(), exitCode);
-				}
-			} catch (InterruptedException ex) {
-				Thread.currentThread().interrupt();
-				// stop()이 이미 map에서 제거하고 STOPPED 업데이트를 처리했으므로 여기서는 skip
-				if (threads.remove(run.id(), Thread.currentThread())) {
-					ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
-				}
-			} catch (Exception ex) {
-				logger.error("GATLING run={} failed: {}", run.id(), ex.getMessage(), ex);
-				if (threads.remove(run.id(), Thread.currentThread())) {
-					ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
-				}
-			} finally {
-				threads.remove(run.id(), Thread.currentThread());
-				ExecutorSupport.deleteQuietly(workDir);
-			}
-		});
+		var thread = new Thread(() -> runInThread(scenario, run));
 		thread.setDaemon(true);
 		threads.put(run.id(), thread);
 		thread.start();
 	}
 
-	@Override
-	public void stop(String runId) {
-		var thread = threads.get(runId);
-		var isRemoved = threads.remove(runId, thread);
+	private void runInThread(Scenario scenario, Run run) {
+		Path workDir = null;
+		try {
+			workDir = Files.createTempDirectory("perf-" + run.id() + "-");
 
-		if (thread != null && isRemoved) {
-			thread.interrupt();
-			ExecutorSupport.updateStatusToStopped(runRepository, runId);
-			logger.info("GATLING run={} stop requested", runId);
+			// stop()이 먼저 호출된 경우 중단
+			if (cancelledRuns.remove(run.id())) {
+				return;
+			}
+
+			var className = extractClassName(scenario.content());
+			var sourceFile = workDir.resolve(className + ".java");
+			Files.writeString(sourceFile, scenario.content());
+
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.RUNNING);
+
+			var exitCode = runGatling(sourceFile.toString());
+
+			if (removeCurrentThread(run.id())) {
+				var cancelledAtFinish = cancelledRuns.remove(run.id());
+				if (!cancelledAtFinish) {
+					ExecutorSupport.updateStatus(runRepository, run, ExecutorSupport.toRunStatus(exitCode));
+					logger.info("{} run={} finished exitCode={}", engine().name(), run.id(), exitCode);
+				}
+			}
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			resolveStatusOnError(run, RunStatus.STOPPED);
+		} catch (Exception ex) {
+			logger.error("{} run={} failed: {}", engine().name(), run.id(), ex.getMessage(), ex);
+			resolveStatusOnError(run, RunStatus.FAILED);
+		} finally {
+			removeCurrentThread(run.id());
+			cancelledRuns.remove(run.id());
+			ExecutorSupport.deleteQuietly(workDir);
 		}
 	}
 
+	private void resolveStatusOnError(Run run, RunStatus fallback) {
+		var wasCancelled = cancelledRuns.remove(run.id());
+		if (wasCancelled) {
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
+		} else {
+			ExecutorSupport.updateStatus(runRepository, run, fallback);
+		}
+	}
+
+	@Override
+	public void stop(String runId) {
+		cancelledRuns.add(runId);
+		var thread = threads.get(runId);
+		var removed = threads.remove(runId, thread);
+		var canStop = thread != null && removed;
+		if (canStop) {
+			thread.interrupt();
+		}
+		var stopped = ExecutorSupport.updateStatusToStopped(runRepository, runId);
+		if (!stopped) {
+			cancelledRuns.remove(runId);
+		}
+		logger.info("{} run={} stop requested", engine().name(), runId);
+	}
+
+	int runGatling(String sourceFile) throws Exception {
+		return GatlingRunner.runWithoutExit(sourceFile);
+	}
+
+	private boolean removeCurrentThread(String runId) {
+		return threads.remove(runId, Thread.currentThread());
+	}
+
 	private String extractClassName(String source) {
-		Matcher matcher = CLASS_NAME_PATTERN.matcher(source);
+		var matcher = CLASS_NAME_PATTERN.matcher(source);
 		if (matcher.find()) {
 			return matcher.group(1);
 		}
