@@ -71,10 +71,16 @@ public class GatlingExecutor implements TestExecutor {
 			}
 		} catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
-			resolveStatusOnError(run, RunStatus.STOPPED);
+			cancelledRuns.remove(run.id());
+			ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
 		} catch (Exception ex) {
 			logger.error("{} run={} failed: {}", engine().name(), run.id(), ex.getMessage(), ex);
-			resolveStatusOnError(run, RunStatus.FAILED);
+			var wasCancelled = cancelledRuns.remove(run.id());
+			if (wasCancelled) {
+				ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
+			} else {
+				ExecutorSupport.updateStatus(runRepository, run, RunStatus.FAILED);
+			}
 		} finally {
 			removeCurrentThread(run.id());
 			cancelledRuns.remove(run.id());
@@ -82,22 +88,11 @@ public class GatlingExecutor implements TestExecutor {
 		}
 	}
 
-	private void resolveStatusOnError(Run run, RunStatus fallback) {
-		var wasCancelled = cancelledRuns.remove(run.id());
-		if (wasCancelled) {
-			ExecutorSupport.updateStatus(runRepository, run, RunStatus.STOPPED);
-		} else {
-			ExecutorSupport.updateStatus(runRepository, run, fallback);
-		}
-	}
-
 	@Override
 	public void stop(String runId) {
 		cancelledRuns.add(runId);
 		var thread = threads.get(runId);
-		var removed = threads.remove(runId, thread);
-		var canStop = thread != null && removed;
-		if (canStop) {
+		if (thread != null && threads.remove(runId, thread)) {
 			thread.interrupt();
 		}
 		var stopped = ExecutorSupport.updateStatusToStopped(runRepository, runId);

@@ -96,6 +96,7 @@ abstract class AbstractProcessExecutor implements TestExecutor {
 			if (process != null) {
 				processes.remove(run.id(), process);
 			}
+			cancelledRuns.remove(run.id());
 			ExecutorSupport.deleteQuietly(workDir);
 		}
 	}
