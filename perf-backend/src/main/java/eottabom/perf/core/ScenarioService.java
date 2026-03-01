@@ -28,7 +28,7 @@ public class ScenarioService {
 	public List<Scenario> findAll(LocalDateTime after, String afterId, int size) {
 		return after == null
 				? scenarioRepository.findFirst(size)
-				: scenarioRepository.findAfter(after, afterId, size);
+				: scenarioRepository.findAfter(after, normalizeCursorId(afterId), size);
 	}
 
 	public List<Scenario> findAllById(Collection<String> ids) {
@@ -75,5 +75,9 @@ public class ScenarioService {
 			throw new IllegalStateException("Scenario has runs and cannot be deleted: " + id);
 		}
 		scenarioRepository.deleteById(id);
+	}
+
+	private static String normalizeCursorId(String afterId) {
+		return (afterId == null || afterId.isBlank()) ? "~" : afterId;
 	}
 }

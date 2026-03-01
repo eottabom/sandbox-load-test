@@ -60,7 +60,7 @@ public class RunService {
 	public List<RunResponse> findAll(LocalDateTime after, String afterId, int size) {
 		var runs = after == null
 				? runRepository.findFirst(size)
-				: runRepository.findAfter(after, afterId, size);
+				: runRepository.findAfter(after, normalizeCursorId(afterId), size);
 
 		// N+1 쿼리 방지: 시나리오를 한 번에 배치 조회
 		var scenarioIds = runs.stream().map(Run::scenarioId).collect(Collectors.toSet());
@@ -70,6 +70,10 @@ public class RunService {
 		return runs.stream()
 				.map(run -> RunResponse.from(run, scenarioMap.get(run.scenarioId())))
 				.toList();
+	}
+
+	private static String normalizeCursorId(String afterId) {
+		return (afterId == null || afterId.isBlank()) ? "~" : afterId;
 	}
 
 	public RunResponse findById(String id) {
