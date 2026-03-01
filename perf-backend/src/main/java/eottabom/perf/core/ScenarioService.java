@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import static eottabom.perf.core.CursorUtils.normalizeCursorId;
+
 @Service
 public class ScenarioService {
 
@@ -75,9 +77,5 @@ public class ScenarioService {
 			throw new IllegalStateException("Scenario has runs and cannot be deleted: " + id);
 		}
 		scenarioRepository.deleteById(id);
-	}
-
-	private static String normalizeCursorId(String afterId) {
-		return (afterId == null || afterId.isBlank()) ? "~" : afterId;
 	}
 }

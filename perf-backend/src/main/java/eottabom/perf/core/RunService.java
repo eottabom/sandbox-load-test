@@ -18,6 +18,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static eottabom.perf.core.CursorUtils.normalizeCursorId;
+
 @Service
 public class RunService {
 
@@ -70,10 +72,6 @@ public class RunService {
 		return runs.stream()
 				.map(run -> RunResponse.from(run, scenarioMap.get(run.scenarioId())))
 				.toList();
-	}
-
-	private static String normalizeCursorId(String afterId) {
-		return (afterId == null || afterId.isBlank()) ? "~" : afterId;
 	}
 
 	public RunResponse findById(String id) {
