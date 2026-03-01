@@ -6,6 +6,6 @@ public final class CursorUtils {
 	}
 
 	public static String normalizeCursorId(String afterId) {
-		return (afterId == null || afterId.isBlank()) ? "~" : afterId;
+		return (afterId == null || afterId.isBlank()) ? "~" : afterId.trim();
 	}
 }
