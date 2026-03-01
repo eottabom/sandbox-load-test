@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import static eottabom.perf.core.CursorUtils.normalizeCursorId;
+
 @Service
 public class ScenarioService {
 
@@ -28,7 +30,7 @@ public class ScenarioService {
 	public List<Scenario> findAll(LocalDateTime after, String afterId, int size) {
 		return after == null
 				? scenarioRepository.findFirst(size)
-				: scenarioRepository.findAfter(after, afterId, size);
+				: scenarioRepository.findAfter(after, normalizeCursorId(afterId), size);
 	}
 
 	public List<Scenario> findAllById(Collection<String> ids) {

@@ -18,6 +18,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static eottabom.perf.core.CursorUtils.normalizeCursorId;
+
 @Service
 public class RunService {
 
@@ -60,7 +62,7 @@ public class RunService {
 	public List<RunResponse> findAll(LocalDateTime after, String afterId, int size) {
 		var runs = after == null
 				? runRepository.findFirst(size)
-				: runRepository.findAfter(after, afterId, size);
+				: runRepository.findAfter(after, normalizeCursorId(afterId), size);
 
 		// N+1 쿼리 방지: 시나리오를 한 번에 배치 조회
 		var scenarioIds = runs.stream().map(Run::scenarioId).collect(Collectors.toSet());

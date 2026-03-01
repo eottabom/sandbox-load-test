@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -68,6 +69,23 @@ class ScenarioServiceTests {
 		assertThat(result).hasSize(1)
 				.extracting(Scenario::name)
 				.containsExactly("Stress Test");
+		verify(scenarioRepository).findAfter(cursor, "id-2", 50);
+	}
+
+	@Test
+	void findAllUsesFallbackAfterIdWhenCursorIdMissing() {
+		// given
+		var cursor = TestFixtures.FIXED_TIME;
+		given(scenarioRepository.findAfter(any(), any(), anyInt())).willReturn(List.of(
+				TestFixtures.scenario("id-3", "Stress Test", Engine.K6)
+		));
+
+		// when
+		var result = scenarioService.findAll(cursor, "", 50);
+
+		// then
+		assertThat(result).hasSize(1);
+		verify(scenarioRepository).findAfter(eq(cursor), eq("~"), eq(50));
 	}
 
 	@Test
