@@ -2,6 +2,40 @@
 
 어노테이션 기반으로 Gatling 부하 테스트를 실행하고, 실행 중 메트릭을 Prometheus 형식으로 노출하는 실행 JAR 모듈.
 
+> **핵심 가치**: `@LoadTest` 어노테이션 하나로 Gatling `Simulation` 상속 없이 시나리오를 선언하고, 실행과 동시에 Prometheus 메트릭이 자동 노출된다.
+
+---
+
+## 목차
+
+- [Quick Start](#quick-start)
+- [왜 만들었나](#왜-만들었나)
+- [전체 플로우](#전체-플로우)
+- [패키지 구조](#패키지-구조)
+- [전제 조건](#전제-조건)
+- [어노테이션 기반 시나리오 작성](#어노테이션-기반-시나리오-작성)
+- [실행 방법](#실행-방법)
+- [Prometheus 메트릭](#prometheus-메트릭)
+- [빌드 및 배포](#빌드-및-배포)
+
+---
+
+## Quick Start
+
+```bash
+# 1. Fat JAR 빌드
+cd gatling-runner
+./gradlew shadowJar
+
+# 2. 클래스패스의 샘플 시나리오 실행
+java -jar build/libs/gatling-runner.jar SampleScenario
+
+# 3. 외부 .java 파일 런타임 컴파일 후 실행
+java -jar build/libs/gatling-runner.jar /path/to/MyScenario.java
+```
+
+실행 즉시 `http://localhost:9102/metrics`에서 Prometheus 메트릭이 노출된다.
+
 ---
 
 ## 왜 만들었나
@@ -11,50 +45,31 @@ Gatling은 기본적으로 테스트가 **끝난 뒤** HTML 리포트를 생성�
 
 `gatling-runner`는 두 가지 문제를 동시에 해결한다.
 
-1. **어노테이션만 붙이면 실행** — `@LoadTest`, `@Protocol`, `@Scenario`, `@Injection` 4개 어노테이션으로 시나리오를 선언하면 `GatlingRunner`가 나머지를 처리한다. `Simulation`을 상속하거나 `setUp()`을 직접 호출할 필요가 없다.
-2. **실행 중 Prometheus 메트릭 노출** — 테스트가 시작되는 순간 HTTP 엔드포인트(기본 `:9102/metrics`)가 열리고, 응답 시간·요청 수·에러 수·활성 사용자 수가 실시간으로 스크레이핑된다.
-
----
-
-## 목표
-
-- Gatling 시나리오 작성 진입 장벽 낮추기 (Simulation 상속 제거)
-- 테스트 실행 중 실시간 메트릭 가시성 확보 (Prometheus + Grafana)
-- `perf-backend`에서 시나리오 소스를 받아 **런타임 컴파일 → 실행**하는 파이프라인 지원
-- 단일 Fat JAR로 배포 — 의존성 없이 `java -jar`로 즉시 실행 가능
+| 기존 Gatling | gatling-runner |
+|-------------|----------------|
+| `Simulation` 상속 + `setUp()` 직접 호출 필요 | `@LoadTest` 등 4개 어노테이션만 선언하면 실행 |
+| 테스트 종료 후 HTML 리포트 | 실행 중 `:9102/metrics`로 실시간 Prometheus 메트릭 노출 |
+| 시나리오 클래스를 미리 컴파일해야 함 | `.java` 파일을 런타임에 컴파일 → 즉시 실행 |
+| 별도 Gatling 설치 또는 플러그인 필요 | 단일 Fat JAR (`java -jar`)로 즉시 실행 |
 
 ---
 
 ## 전체 플로우
 
-```
-[ 시나리오 클래스 (.java) ]
-         │
-         │  java -jar gatling-runner.jar <ClassName | /path/to/File.java>
-         ▼
-[ GatlingRunner (main) ]
-   ├─ .java 파일이면 RuntimeCompiler로 런타임 컴파일
-   ├─ 클래스패스에 있는 클래스면 Class.forName으로 로드
-   └─ DynamicPrometheusSimulation.setTargetClass(className)
-         │
-         │  Gatling 엔진이 DynamicPrometheusSimulation 인스턴스 생성
-         ▼
-[ DynamicPrometheusSimulation (생성자) ]
-   ├─ SimulationAnnotationScanner → @Protocol / @Scenario / @Injection 필드 스캔
-   ├─ PrometheusProtocolWrapper   → HttpProtocol에 메트릭 수집 래퍼 적용
-   └─ setUp(scenario.injectOpen(injection)).protocols(wrappedProtocol)
-         │
-         │  테스트 실행 시작
-         ▼
-[ GatlingPrometheusMetrics (싱글톤) ]
-   ├─ 응답마다 Histogram / Counter 기록
-   └─ PrometheusServerManager → HTTP 서버 :9102 기동
-         │
-         ▼
-[ :9102/metrics ]  ←─ Prometheus 스크레이핑
-         │
-         ▼
-[ Grafana 대시보드 ]
+```mermaid
+flowchart TD
+    A["시나리오 클래스 (.java)"] -->|"java -jar gatling-runner.jar"| B["GatlingRunner (main)"]
+    B -->|".java 파일"| C[RuntimeCompiler<br/>런타임 컴파일]
+    B -->|"클래스명"| D[Class.forName<br/>클래스 로드]
+    C --> E[DynamicPrometheusSimulation]
+    D --> E
+    E -->|어노테이션 스캔| F["@Protocol / @Scenario / @Injection"]
+    F --> G[setUp + PrometheusProtocolWrapper]
+    G --> H["테스트 실행"]
+    H --> I["GatlingPrometheusMetrics<br/>Histogram / Counter 기록"]
+    I --> J[":9102/metrics"]
+    J --> K["Prometheus 스크레이핑"]
+    K --> L["Grafana 대시보드"]
 ```
 
 ---
@@ -184,9 +199,7 @@ java -jar gatling-runner.jar /tmp/MyScenario.java
 
 ---
 
----
-
-## 노출되는 Prometheus 메트릭
+## Prometheus 메트릭
 
 테스트 실행 중 `http://localhost:9102/metrics`에서 확인 가능하다.
 
