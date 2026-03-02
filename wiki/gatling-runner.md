@@ -1,5 +1,3 @@
-# gatling-runner
-
 어노테이션 기반으로 Gatling 부하 테스트를 실행하고, 실행 중 메트릭을 Prometheus 형식으로 노출하는 실행 JAR 모듈.
 
 ---
