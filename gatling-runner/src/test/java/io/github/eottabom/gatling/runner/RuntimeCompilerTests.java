@@ -17,10 +17,15 @@ class RuntimeCompilerTests {
 
 	@AfterEach
 	void cleanup() throws IOException {
-		if (tempDir != null && Files.exists(tempDir)) {
-			try (var paths = Files.walk(tempDir)) {
-				paths.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
-			}
+		if (tempDir == null || !Files.exists(tempDir)) {
+			return;
+		}
+		Path[] pathsToDelete;
+		try (var paths = Files.walk(tempDir)) {
+			pathsToDelete = paths.sorted(Comparator.reverseOrder()).toArray(Path[]::new);
+		}
+		for (Path path : pathsToDelete) {
+			Files.delete(path);
 		}
 	}
 
