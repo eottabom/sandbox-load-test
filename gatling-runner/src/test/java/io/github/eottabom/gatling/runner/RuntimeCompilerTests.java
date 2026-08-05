@@ -102,6 +102,18 @@ class RuntimeCompilerTests {
 				.hasMessageContaining("Compilation failed");
 	}
 
+	@Test
+	void throwsWhenPublicClassNameDoesNotMatchFileName() throws IOException {
+		// javac는 public 클래스가 동일한 이름의 파일에 선언되기를 요구한다.
+		// parseFQCN은 소스 텍스트만 읽으므로, 이 불일치는 컴파일 시점에야 드러난다.
+		var sourceFile = writeSource("Wrong", "public class Actual {}\n");
+
+		assertThatThrownBy(() -> RuntimeCompiler.compile(sourceFile))
+				.isInstanceOf(RuntimeException.class)
+				.hasMessageContaining("Compilation failed")
+				.hasMessageContaining("should be declared in a file named Actual.java");
+	}
+
 	private Path writeSource(String fileName, String content) throws IOException {
 		tempDir = Files.createTempDirectory("runtime-compiler-test-");
 		var sourceFile = tempDir.resolve(fileName + ".java");

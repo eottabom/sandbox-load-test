@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Fixture fields intentionally avoid io.gatling.javaapi.http.HttpDsl ({@code http(...)}):
- * its static initializer calls into Gatling's Predef configuration, which is only set up
- * when Gatling itself boots a Simulation. Outside of that, touching HttpDsl blows up the
- * class forever in this JVM. HttpProtocolBuilder's public constructor and CoreDsl.scenario()
- * don't have that dependency, so real Gatling types can still be scanned in isolation.
+ * 픽스처 필드는 io.gatling.javaapi.http.HttpDsl({@code http(...)}) 사용을 의도적으로 피한다.
+ * HttpDsl의 static 초기화 블록은 Gatling이 Simulation을 부트스트랩할 때만 채워지는 Predef 설정에
+ * 접근하는데, 그 밖의 상황에서 HttpDsl을 건드리면 해당 JVM에서 이후로 계속 초기화 실패한다.
+ * HttpProtocolBuilder의 public 생성자와 CoreDsl.scenario()는 이 의존성이 없어서
+ * 실제 Gatling 타입을 격리된 상태에서도 스캔할 수 있다.
  */
 class SimulationAnnotationScannerTests {
 

@@ -31,4 +31,11 @@ class SimulationDescriptorTests {
 
 		assertThat(descriptor.injection()).isNull();
 	}
+
+	@Test
+	void distinguishesEmptyInjectionArrayFromNull() {
+		var descriptor = new SimulationDescriptor("sim", "scenario", null, null, new OpenInjectionStep[0]);
+
+		assertThat(descriptor.injection()).isNotNull().isEmpty();
+	}
 }
