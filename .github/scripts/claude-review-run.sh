@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="/Users/yukeun/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 REVIEW_FILE="/tmp/claude-review-${PR_NUMBER}.json"
 

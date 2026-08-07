@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="/Users/yukeun/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+: "${RUNNER_WORKDIR:?RUNNER_WORKDIR env var must be set}"
 
 REVIEW_FILE="/tmp/codex-review-${PR_NUMBER}.json"
 
@@ -45,6 +46,6 @@ Rules:
 PROMPT_EOF
 
 codex exec \
-  -C "/Users/yukeun/workspace/sandbox-load-test" \
+  -C "$RUNNER_WORKDIR" \
   --dangerously-bypass-approvals-and-sandbox \
   - < "$PROMPT_FILE"
