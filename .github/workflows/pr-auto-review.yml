@@ -1,0 +1,103 @@
+name: PR Auto Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 30
+    concurrency:
+      group: claude-review-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: [self-hosted, macOS, X64]
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+
+    defaults:
+      run:
+        working-directory: /Users/yukeun/workspace/sandbox-load-test
+
+    steps:
+      - name: Checkout PR branch
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/eottabom/sandbox-load-test.git
+          git fetch origin
+          git checkout ${{ github.event.pull_request.head.ref }} 2>/dev/null || git checkout -b ${{ github.event.pull_request.head.ref }} origin/${{ github.event.pull_request.head.ref }}
+          git reset --hard origin/${{ github.event.pull_request.head.ref }}
+
+      - name: Check Claude login status
+        id: claude_auth
+        env:
+          HOME: /Users/yukeun
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          export PATH="/Users/yukeun/.local/bin:$PATH"
+          if claude auth status 2>/dev/null | jq -e '.loggedIn == true' >/dev/null; then
+            echo "logged_in=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-bot** self-hosted 러너의 \`claude\` CLI 로그인 세션이 만료되어 자동 리뷰를 실행할 수 없습니다. 러너 머신에서 \`claude /login\`으로 재로그인해 주세요."
+          fi
+
+      - name: Run Claude review
+        if: steps.claude_auth.outputs.logged_in == 'true'
+        env:
+          HOME: /Users/yukeun
+          CI: ""
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          unset CI
+          unset GITHUB_ACTIONS
+          unset GITHUB_TOKEN
+          bash /Users/yukeun/workspace/sandbox-load-test/.github/scripts/claude-review-run.sh 2>&1 | \
+            jq --unbuffered -r '
+              if .type == "assistant" then
+                (.message.content // [])[] |
+                if .type == "text" then .text
+                elif .type == "tool_use" then "[tool:\(.name)] \(.input | tostring | .[0:200])"
+                else empty end
+              elif .type == "tool_result" then
+                "  → \((.content // [])[] | select(.type == "text") | .text | .[0:300])"
+              elif .type == "result" then
+                "\n=== \(.subtype) ==="
+              else empty end
+            ' 2>/dev/null || true
+
+  codex-review:
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 30
+    concurrency:
+      group: codex-review-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: [self-hosted, macOS, X64]
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+
+    defaults:
+      run:
+        working-directory: /Users/yukeun/workspace/sandbox-load-test
+
+    steps:
+      - name: Checkout PR branch
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/eottabom/sandbox-load-test.git
+          git fetch origin
+          git checkout ${{ github.event.pull_request.head.ref }} 2>/dev/null || git checkout -b ${{ github.event.pull_request.head.ref }} origin/${{ github.event.pull_request.head.ref }}
+          git reset --hard origin/${{ github.event.pull_request.head.ref }}
+
+      - name: Run Codex review
+        env:
+          HOME: /Users/yukeun
+          CI: ""
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          unset CI
+          bash /Users/yukeun/workspace/sandbox-load-test/.github/scripts/codex-review-run.sh
