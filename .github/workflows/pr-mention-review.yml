@@ -76,7 +76,7 @@ jobs:
             echo "logged_in=true" >> "$GITHUB_OUTPUT"
           else
             echo "logged_in=false" >> "$GITHUB_OUTPUT"
-            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-review-bot** self-hosted 러너의 \`claude\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`claude /login\`으로 재로그인해 주세요."
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-claude-review-bot** self-hosted 러너의 \`claude\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`claude /login\`으로 재로그인해 주세요."
           fi
 
       - name: Run Claude review
@@ -175,7 +175,7 @@ jobs:
             echo "logged_in=true" >> "$GITHUB_OUTPUT"
           else
             echo "logged_in=false" >> "$GITHUB_OUTPUT"
-            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-review-bot** self-hosted 러너의 \`codex\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`codex login\`으로 재로그인해 주세요."
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-codex-review-bot** self-hosted 러너의 \`codex\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`codex login\`으로 재로그인해 주세요."
           fi
 
       - name: Run Codex review
