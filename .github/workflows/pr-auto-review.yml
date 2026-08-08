@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   claude-review:
-    if: github.event.pull_request.draft == false
+    if: |
+      github.event.pull_request.draft == false &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     timeout-minutes: 30
     concurrency:
       group: claude-review-pr-${{ github.event.pull_request.number }}
@@ -25,12 +27,16 @@ jobs:
         working-directory: ${{ vars.RUNNER_WORKDIR }}
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout PR head
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git
-          git fetch origin
-          git checkout ${{ github.event.pull_request.head.ref }} 2>/dev/null || git checkout -b ${{ github.event.pull_request.head.ref }} origin/${{ github.event.pull_request.head.ref }}
-          git reset --hard origin/${{ github.event.pull_request.head.ref }}
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
+          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git checkout --detach FETCH_HEAD
+          git reset --hard FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git remote set-url origin "https://github.com/eottabom/sandbox-load-test.git"
 
       - name: Check Claude login status
         id: claude_auth
@@ -56,6 +62,8 @@ jobs:
           unset CI
           unset GITHUB_ACTIONS
           unset GITHUB_TOKEN
+          set +e
+          set -o pipefail
           bash "${{ vars.RUNNER_WORKDIR }}/.github/scripts/claude-review-run.sh" 2>&1 | \
             jq --unbuffered -r '
               if .type == "assistant" then
@@ -68,10 +76,15 @@ jobs:
               elif .type == "result" then
                 "\n=== \(.subtype) ==="
               else empty end
-            ' 2>/dev/null || true
+            ' 2>/dev/null
+          rc="${PIPESTATUS[0]}"
+          set -e
+          exit "$rc"
 
   codex-review:
-    if: github.event.pull_request.draft == false
+    if: |
+      github.event.pull_request.draft == false &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     timeout-minutes: 30
     concurrency:
       group: codex-review-pr-${{ github.event.pull_request.number }}
@@ -86,14 +99,33 @@ jobs:
         working-directory: ${{ vars.RUNNER_WORKDIR }}
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout PR head
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git
-          git fetch origin
-          git checkout ${{ github.event.pull_request.head.ref }} 2>/dev/null || git checkout -b ${{ github.event.pull_request.head.ref }} origin/${{ github.event.pull_request.head.ref }}
-          git reset --hard origin/${{ github.event.pull_request.head.ref }}
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
+          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git checkout --detach FETCH_HEAD
+          git reset --hard FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git remote set-url origin "https://github.com/eottabom/sandbox-load-test.git"
+
+      - name: Check Codex login status
+        id: codex_auth
+        env:
+          HOME: ${{ vars.RUNNER_HOME }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          if codex login status 2>/dev/null | grep -qi "logged in"; then
+            echo "logged_in=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-review-bot** self-hosted 러너의 \`codex\` CLI 로그인 세션이 만료되어 자동 리뷰를 실행할 수 없습니다. 러너 머신에서 \`codex login\`으로 재로그인해 주세요."
+          fi
 
       - name: Run Codex review
+        if: steps.codex_auth.outputs.logged_in == 'true'
         env:
           HOME: ${{ vars.RUNNER_HOME }}
           CI: ""
