@@ -1,0 +1,191 @@
+name: 💬 PR Mention Re-review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    if: |
+      contains(github.event.comment.body, '@eottabom-review-bot') &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    timeout-minutes: 30
+    concurrency:
+      group: claude-review-pr-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    runs-on: [self-hosted, macOS, X64]
+    env:
+      PR_NUMBER: ${{ github.event.issue.number }}
+
+    defaults:
+      run:
+        working-directory: ${{ vars.RUNNER_WORKDIR }}
+
+    steps:
+      - name: React with eyes emoji
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes'
+            });
+
+      - name: Get PR info
+        id: pr_info
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            });
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('head_sha', pr.head.sha);
+
+      - name: Checkout PR head
+        env:
+          HEAD_SHA: ${{ steps.pr_info.outputs.head_sha }}
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
+          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git checkout --detach FETCH_HEAD
+          git reset --hard FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git remote set-url origin "https://github.com/eottabom/sandbox-load-test.git"
+
+      - name: Check Claude login status
+        id: claude_auth
+        env:
+          HOME: ${{ vars.RUNNER_HOME }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          if claude auth status 2>/dev/null | jq -e '.loggedIn == true' >/dev/null; then
+            echo "logged_in=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-review-bot** self-hosted 러너의 \`claude\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`claude /login\`으로 재로그인해 주세요."
+          fi
+
+      - name: Run Claude review
+        if: steps.claude_auth.outputs.logged_in == 'true'
+        env:
+          HOME: ${{ vars.RUNNER_HOME }}
+          CI: ""
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ steps.pr_info.outputs.base_ref }}
+        run: |
+          unset CI
+          unset GITHUB_ACTIONS
+          unset GITHUB_TOKEN
+          set +e
+          bash "${{ vars.RUNNER_WORKDIR }}/.github/scripts/claude-review-run.sh" 2>&1 | \
+            jq --unbuffered -r '
+              if .type == "assistant" then
+                (.message.content // [])[] |
+                if .type == "text" then .text
+                elif .type == "tool_use" then "[tool:\(.name)] \(.input | tostring | .[0:200])"
+                else empty end
+              elif .type == "tool_result" then
+                "  → \((.content // [])[] | select(.type == "text") | .text | .[0:300])"
+              elif .type == "result" then
+                "\n=== \(.subtype) ==="
+              else empty end
+            ' 2>/dev/null
+          rc="${PIPESTATUS[0]}"
+          set -e
+          exit "$rc"
+
+  codex-review:
+    if: |
+      contains(github.event.comment.body, '@eottabom-review-bot') &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    timeout-minutes: 30
+    concurrency:
+      group: codex-review-pr-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    runs-on: [self-hosted, macOS, X64]
+    env:
+      PR_NUMBER: ${{ github.event.issue.number }}
+
+    defaults:
+      run:
+        working-directory: ${{ vars.RUNNER_WORKDIR }}
+
+    steps:
+      - name: React with eyes emoji
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes'
+            });
+
+      - name: Get PR info
+        id: pr_info
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            });
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('head_sha', pr.head.sha);
+
+      - name: Checkout PR head
+        env:
+          HEAD_SHA: ${{ steps.pr_info.outputs.head_sha }}
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
+          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git checkout --detach FETCH_HEAD
+          git reset --hard FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git remote set-url origin "https://github.com/eottabom/sandbox-load-test.git"
+
+      - name: Check Codex login status
+        id: codex_auth
+        env:
+          HOME: ${{ vars.RUNNER_HOME }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          if codex login status 2>/dev/null | grep -qi "logged in"; then
+            echo "logged_in=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR_NUMBER" --repo eottabom/sandbox-load-test --body "⚠️ **eottabom-review-bot** self-hosted 러너의 \`codex\` CLI 로그인 세션이 만료되어 재리뷰를 실행할 수 없습니다. 러너 머신에서 \`codex login\`으로 재로그인해 주세요."
+          fi
+
+      - name: Run Codex review
+        if: steps.codex_auth.outputs.logged_in == 'true'
+        env:
+          HOME: ${{ vars.RUNNER_HOME }}
+          CI: ""
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ steps.pr_info.outputs.base_ref }}
+          RUNNER_WORKDIR: ${{ vars.RUNNER_WORKDIR }}
+        run: |
+          unset CI
+          bash "${{ vars.RUNNER_WORKDIR }}/.github/scripts/codex-review-run.sh"
