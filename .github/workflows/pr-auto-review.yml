@@ -33,6 +33,7 @@ jobs:
         run: |
           git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
           git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
           git checkout --detach FETCH_HEAD
           git reset --hard FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
@@ -105,6 +106,7 @@ jobs:
         run: |
           git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/eottabom/sandbox-load-test.git"
           git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
           git checkout --detach FETCH_HEAD
           git reset --hard FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
