@@ -22,7 +22,7 @@ Steps:
    The 'body' field must use this exact markdown structure:
 
 {
-  "body": "## 🤖 eottabom-claude-review\n\n### 📊 종합 평가\n\n| 항목 | 평가 |\n|------|------|\n| ✅ Correctness | <가능 / 불가 + 한 줄 이유> |\n| 🔁 Regression Risk | <🔴 매우 높음 / 🟡 보통 / 🟢 낮음 + 한 줄 이유> |\n| ⚠️ Risky Changes | <있음: 내용 요약 / 없음> |\n| 🧪 Missing Tests | <있음: 내용 요약 / 없음> |\n\n### 📝 상세 리뷰\n\n<상세 리뷰 내용을 마크다운으로 작성. 파일명, 라인, 근거를 구체적으로>",
+  "body": "## 🤖 eottabom-claude-review-bot\n\n### 📊 종합 평가\n\n| 항목 | 평가 |\n|------|------|\n| ✅ Correctness | <가능 / 불가 + 한 줄 이유> |\n| 🔁 Regression Risk | <🔴 매우 높음 / 🟡 보통 / 🟢 낮음 + 한 줄 이유> |\n| ⚠️ Risky Changes | <있음: 내용 요약 / 없음> |\n| 🧪 Missing Tests | <있음: 내용 요약 / 없음> |\n\n### 📝 상세 리뷰\n\n<상세 리뷰 내용을 마크다운으로 작성. 파일명, 라인, 근거를 구체적으로>",
   "event": "COMMENT",
   "comments": [
     {
